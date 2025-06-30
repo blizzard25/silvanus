@@ -1,0 +1,162 @@
+[
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-29T23:13:17.782169Z",
+    "energy_charged_kwh": 20.62,
+    "charging_source": "solar",
+    "distance_driven_km": 21.12,
+    "regen_braking_kwh": 2.5
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-29T23:43:17.782169Z",
+    "energy_charged_kwh": 16.77,
+    "charging_source": "unknown",
+    "distance_driven_km": 29.42,
+    "regen_braking_kwh": 1.98
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T00:13:17.782169Z",
+    "energy_charged_kwh": 24.98,
+    "charging_source": "grid",
+    "distance_driven_km": 29.14,
+    "regen_braking_kwh": 0.63
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T00:43:17.782169Z",
+    "energy_charged_kwh": 24.41,
+    "charging_source": "solar",
+    "distance_driven_km": 33.04,
+    "regen_braking_kwh": 2.27
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T01:13:17.782169Z",
+    "energy_charged_kwh": 5.52,
+    "charging_source": "solar",
+    "distance_driven_km": 28.74,
+    "regen_braking_kwh": 1.68
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T01:43:17.782169Z",
+    "energy_charged_kwh": 24.08,
+    "charging_source": "grid",
+    "distance_driven_km": 70.87,
+    "regen_braking_kwh": 2.83
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T02:13:17.782169Z",
+    "energy_charged_kwh": 6.92,
+    "charging_source": "solar",
+    "distance_driven_km": 41.23,
+    "regen_braking_kwh": 1.7
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T02:43:17.782169Z",
+    "energy_charged_kwh": 19.13,
+    "charging_source": "grid",
+    "distance_driven_km": 61.25,
+    "regen_braking_kwh": 2.32
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T03:13:17.782169Z",
+    "energy_charged_kwh": 8.34,
+    "charging_source": "unknown",
+    "distance_driven_km": 15.57,
+    "regen_braking_kwh": 0.59
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T03:43:17.782169Z",
+    "energy_charged_kwh": 7.23,
+    "charging_source": "grid",
+    "distance_driven_km": 15.46,
+    "regen_braking_kwh": 2.05
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T04:13:17.782169Z",
+    "energy_charged_kwh": 17.62,
+    "charging_source": "solar",
+    "distance_driven_km": 60.35,
+    "regen_braking_kwh": 0.92
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T04:43:17.782169Z",
+    "energy_charged_kwh": 6.85,
+    "charging_source": "solar",
+    "distance_driven_km": 21.38,
+    "regen_braking_kwh": 1.78
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T05:13:17.782169Z",
+    "energy_charged_kwh": 8.97,
+    "charging_source": "grid",
+    "distance_driven_km": 27.72,
+    "regen_braking_kwh": 1.04
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T05:43:17.782169Z",
+    "energy_charged_kwh": 23.96,
+    "charging_source": "solar",
+    "distance_driven_km": 49.85,
+    "regen_braking_kwh": 1.88
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T06:13:17.782169Z",
+    "energy_charged_kwh": 24.83,
+    "charging_source": "grid",
+    "distance_driven_km": 40.12,
+    "regen_braking_kwh": 1.57
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T06:43:17.782169Z",
+    "energy_charged_kwh": 20.86,
+    "charging_source": "grid",
+    "distance_driven_km": 15.89,
+    "regen_braking_kwh": 2.07
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T07:13:17.782169Z",
+    "energy_charged_kwh": 12.55,
+    "charging_source": "solar",
+    "distance_driven_km": 68.25,
+    "regen_braking_kwh": 1.28
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T07:43:17.782169Z",
+    "energy_charged_kwh": 20.34,
+    "charging_source": "solar",
+    "distance_driven_km": 57.9,
+    "regen_braking_kwh": 1.72
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T08:13:17.782169Z",
+    "energy_charged_kwh": 21.47,
+    "charging_source": "solar",
+    "distance_driven_km": 57.5,
+    "regen_braking_kwh": 0.84
+  },
+  {
+    "vehicle_id": "EV001",
+    "timestamp": "2025-06-30T08:43:17.782169Z",
+    "energy_charged_kwh": 15.33,
+    "charging_source": "solar",
+    "distance_driven_km": 70.58,
+    "regen_braking_kwh": 0.67
+  }
+]
