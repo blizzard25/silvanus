@@ -9,7 +9,7 @@ async function main() {
   console.log("Sender:", deployer.address);
   console.log("Recipient:", recipient);
 
-  const token = await hre.ethers.getContractAt("SilvanusToken", contractAddress);
+  const token = await hre.ethers.getContractAt("Silvanus", contractAddress);
 
   const amount = ethers.parseEther("10"); // ← notice: now from raw ethers, not hre.ethers
   const tx = await token.transfer(recipient, amount);

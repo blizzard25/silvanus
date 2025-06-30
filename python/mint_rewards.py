@@ -9,7 +9,6 @@ load_dotenv()
 # Load ENV vars
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 SENDER_ADDRESS = os.getenv("WALLET_ADDRESS")
-INFURA_URL = os.getenv("SEPOLIA_RPC")
 
 # Load contract ABI and address
 CONTRACT_ADDRESS = "0x3E80B5768D2a48Da2f5C235f6a0d601a769A9Ca7"
@@ -18,7 +17,7 @@ with open("artifacts/contracts/SilvanusToken.sol/SilvanusToken.json") as f:
 abi = contract_artifact["abi"]
 
 # Setup Web3
-w3 = Web3(Web3.HTTPProvider("https://eth-sepolia.g.alchemy.com/v2/Fj5QVkggT8oSHVj9a9HG7"))
+w3 = Web3(Web3.HTTPProvider(os.getenv("SEPOLIA_RPC_URL")))
 
 contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=abi)
 

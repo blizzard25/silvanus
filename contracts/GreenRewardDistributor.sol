@@ -9,6 +9,8 @@ contract GreenRewardDistributor {
     address public admin;
     ISilvanus public silvanus;
 
+    event RewardDistributed(address indexed user, uint256 amount);
+
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not authorized");
         _;
@@ -21,6 +23,7 @@ contract GreenRewardDistributor {
 
     function reward(address user, uint256 amount) external onlyAdmin {
         require(silvanus.transfer(user, amount), "Transfer failed");
+        emit RewardDistributed(user, amount);
     }
 
     function updateAdmin(address newAdmin) external onlyAdmin {

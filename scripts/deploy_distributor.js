@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const silvanusTokenAddress = "0x8f4FB6498A4D90FBc19c5b0b15F43869D7818Caa";
+  const silvanusTokenAddress = "0x3fcE4d2E8bfF26732EAAf942B67bF31a1e5a965d";
   const tokenAddressParsed = ethers.getAddress(silvanusTokenAddress); // resolves it properly
 
   const Distributor = await ethers.getContractFactory("GreenRewardDistributor");

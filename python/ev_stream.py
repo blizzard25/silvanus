@@ -20,7 +20,7 @@ print("Starting reward loop... parallelized across all wallets every 3 seconds")
 # Setup Web3
 w3 = Web3(Web3.HTTPProvider(os.getenv("SEPOLIA_RPC_URL")))
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
-REWARD_CONTRACT = "0x3f7789C9e2DAa66d864bEB3Bf52B1F96B391cc60"
+REWARD_CONTRACT = os.getenv("REWARD_CONTRACT")
 
 # Smart contract ABI
 ABI = [
