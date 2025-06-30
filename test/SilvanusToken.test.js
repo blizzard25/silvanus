@@ -20,9 +20,9 @@ describe("SilvanusToken", function () {
     expect(ownerBalance).to.equal(toEther(1000));
   });
 
-  it("should transfer tokens between accounts with 2% burn", async function () {
+  it("should transfer tokens between accounts with 0.5% burn", async function () {
     const transferAmount = toEther(100);
-    const expectedBurn = transferAmount / 50n; // 2%
+    const expectedBurn = transferAmount * 50n / 10000n; // 0.5%
     const expectedReceive = transferAmount - expectedBurn;
 
     await token.transfer(addr1.address, transferAmount);
@@ -43,21 +43,25 @@ describe("SilvanusToken", function () {
   });
 
   it("should update balances correctly after multiple transfers", async function () {
-    // Transfer 100 to addr1 (burn 2)
+    // Transfer 100 to addr1 (burn 0.5)
     await token.transfer(addr1.address, toEther(100));
-    // Transfer 50 to addr2 (burn 1)
+    // Transfer 50 to addr2 (burn 0.25)
     await token.transfer(addr2.address, toEther(50));
+
+    const expectedBurn1 = toEther(100) * 50n / 10000n; // 0.5%
+    const expectedBurn2 = toEther(50) * 50n / 10000n;
+
+    const expectedAddr1 = toEther(100) - expectedBurn1;
+    const expectedAddr2 = toEther(50) - expectedBurn2;
 
     const addr1Balance = await token.balanceOf(addr1.address);
     const addr2Balance = await token.balanceOf(addr2.address);
-    const expectedAddr1 = toEther(98); // 2% burn
-    const expectedAddr2 = toEther(49); // 2% burn
     const totalSupply = await token.totalSupply();
 
     expect(addr1Balance).to.equal(expectedAddr1);
     expect(addr2Balance).to.equal(expectedAddr2);
 
-    const totalBurned = toEther(3); // 2 from first transfer, 1 from second
+    const totalBurned = expectedBurn1 + expectedBurn2;
     expect(totalSupply).to.equal(toEther(1000) - totalBurned);
   });
 });
