@@ -4,10 +4,10 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SilvanusToken is ERC20, Ownable {
+contract Silvanus is ERC20, Ownable {
     uint256 public burnRate = 50; // burn rate in basis points (0.5%)
 
-    constructor(uint256 initialSupply) ERC20("SilvanusToken", "SVN") Ownable() {
+    constructor(uint256 initialSupply) ERC20("Silvanus", "SVN") Ownable() {
         _mint(msg.sender, initialSupply);
     }
 
