@@ -1,20 +1,17 @@
 const { ethers } = require("hardhat");
 
-
 async function main() {
-  const contractAddress = "0x3E80B5768D2a48Da2f5C235f6a0d601a769A9Ca7";
-  const SilvanusToken = await hre.ethers.getContractAt("SilvanusToken", contractAddress);
+  const tokenAddress = process.env.TOKEN_ADDRESS;
+  const [deployer] = await ethers.getSigners();
 
-  const name = await SilvanusToken.name();
-  const symbol = await SilvanusToken.symbol();
-  const totalSupply = await SilvanusToken.totalSupply();
+  const token = await ethers.getContractAt("Silvanus", tokenAddress);
+  const balance = await token.balanceOf(deployer.address);
 
-  console.log(`Name: ${name}`);
-  console.log(`Symbol: ${symbol}`);
-  console.log(`Total Supply (raw): ${totalSupply.toString()}`);
+  console.log(`Balance of ${deployer.address}: ${ethers.formatEther(balance)} tokens`);
 }
 
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+

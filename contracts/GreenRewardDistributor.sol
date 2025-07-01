@@ -1,32 +1,54 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface ISilvanus {
-    function transfer(address to, uint256 amount) external returns (bool);
-}
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract GreenRewardDistributor {
-    address public admin;
-    ISilvanus public silvanus;
+contract GreenRewardDistributor is Ownable {
+    IERC20 public rewardToken;
+    uint256 public baseReward; // in wei
+    uint256 public totalGreenEvents;
 
-    event RewardDistributed(address indexed user, uint256 amount);
+    mapping(address => uint256) public totalClaimed;
 
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Not authorized");
-        _;
+    event RewardIssued(address indexed user, uint256 score, uint256 adjustedReward);
+
+    constructor(address tokenAddress, uint256 _baseReward) {
+        rewardToken = IERC20(tokenAddress);
+        baseReward = _baseReward; // e.g., 1e18 for 1 token
     }
 
-    constructor(address _token) {
-        admin = msg.sender;
-        silvanus = ISilvanus(_token);
+    function reward(address user, uint256 score) external onlyOwner {
+        require(score > 0, "Score must be positive");
+
+        totalGreenEvents += 1;
+
+        uint256 denominator = log10(totalGreenEvents + 10);
+        uint256 adjustedReward = (score * baseReward) / denominator;
+
+        require(rewardToken.balanceOf(address(this)) >= adjustedReward, "Insufficient reward balance");
+
+        rewardToken.transfer(user, adjustedReward);
+        totalClaimed[user] += adjustedReward;
+
+        emit RewardIssued(user, score, adjustedReward);
     }
 
-    function reward(address user, uint256 amount) external onlyAdmin {
-        require(silvanus.transfer(user, amount), "Transfer failed");
-        emit RewardDistributed(user, amount);
+    // Integer log base 10
+    function log10(uint256 x) internal pure returns (uint256) {
+        uint256 result = 0;
+        while (x >= 10) {
+            x /= 10;
+            result++;
+        }
+        return result + 1; // shift so log10(10) = 2
     }
 
-    function updateAdmin(address newAdmin) external onlyAdmin {
-        admin = newAdmin;
+    function updateBaseReward(uint256 newBaseReward) external onlyOwner {
+        baseReward = newBaseReward;
+    }
+
+    function withdrawTokens(uint256 amount) external onlyOwner {
+        rewardToken.transfer(msg.sender, amount);
     }
 }
