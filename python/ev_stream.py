@@ -27,7 +27,7 @@ ABI = [
     {
         "inputs": [
             {"internalType": "address", "name": "user", "type": "address"},
-            {"internalType": "uint256", "name": "amount", "type": "uint256"}
+            {"internalType": "uint256", "name": "score", "type": "uint256"}
         ],
         "name": "reward",
         "outputs": [],
@@ -69,22 +69,29 @@ def simulate_green_activity(user):
         "timestamp": int(time.time())
     }
 
-def reward_user(user, amount):
+def reward_user(user, score):
     global current_nonce
     try:
         with nonce_lock:
             nonce = current_nonce
             current_nonce += 1
 
-        txn = contract.functions.reward(user, amount).build_transaction({
+        txn = contract.functions.reward(user, score).build_transaction({
             "from": account.address,
             "nonce": nonce,
-            "gas": 100000,
+            "gas": 150000,
             "gasPrice": w3.eth.gas_price
         })
+
         signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
         tx_hash = w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        print(f"✅ Rewarded {amount} tokens to {user} — TX: {tx_hash.hex()}")
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt.status == 1:
+            print(f"✅ TX succeeded: {tx_hash.hex()} | Score: {score}")
+        else:
+            print(f"❌ TX failed: {tx_hash.hex()}")
+
     except Exception as e:
         print(f"❌ Error rewarding {user}: {e}")
 
@@ -95,7 +102,7 @@ def process_wallet(wallet):
         print(f"   - {typ}: {count} (Score: {score})")
 
     if data["score"] > 0:
-        reward_user(wallet, to_wei(data["score"], 'ether'))
+        reward_user(wallet, data["score"])
     else:
         print("🚫 No qualifying green activity — no reward.")
 
