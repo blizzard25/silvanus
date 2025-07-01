@@ -33,7 +33,7 @@ def dashboard():
     total, burned, rate = load_token_data()
 
     with ui.column().classes('min-h-screen w-full bg-gradient-to-br from-green-50 to-green-100 justify-center items-center p-8'):
-        ui.label('🌿 GreenChain Dashboard').classes('text-4xl font-bold text-green-800 mb-8')
+        ui.label('Silvanus Dashboard').classes('text-4xl font-bold text-green-800 mb-8')
 
         with ui.row().classes('gap-6'):
             with ui.card().classes('p-6 bg-white shadow-xl rounded-xl'):
