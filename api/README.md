@@ -2,23 +2,6 @@
 
 Silvanus is a RESTful API designed to track and reward eco-friendly behaviors from devices such as electric vehicles, smart thermostats, solar systems, and more. This API enables registration of devices, submission of green activities, and the claiming of rewards.
 
-## Project Structure
-
-```
-silvanus/
-├── api/
-│   ├── __init__.py
-│   ├── main.py
-│   └── routes/
-│       ├── activities.py
-│       ├── activity_types.py
-│       ├── devices.py
-│       └── wallets.py
-├── test_greenchain_api.py
-├── requirements.txt
-└── README.md
-```
-
 ## Features
 
 - Register and manage green activity tracking devices
