@@ -1,9 +1,9 @@
-import httpx
 import requests
 from datetime import datetime, timezone
-import uuid
 
 BASE_URL = "http://localhost:8000"
+API_KEY = "12062569evan1206"
+HEADERS = {"X-API-Key": API_KEY}
 
 def test_register_device():
     payload = {
@@ -12,9 +12,9 @@ def test_register_device():
         "owner": "0x1234567890abcdef1234567890abcdef12345678"
     }
 
-    response = requests.post(f"{BASE_URL}/devices/", json=payload)
+    response = requests.post(f"{BASE_URL}/devices", json=payload, headers=HEADERS)
     print("Status code:", response.status_code)
-    print("Response body:", response.text)  # added line
+    print("Response body:", response.text)
     assert response.status_code == 200
     data = response.json()
     print("✅ Registered Device:", data)
@@ -34,17 +34,17 @@ def test_submit_activity(device_id):
         }
     }
 
-    response = requests.post(f"{BASE_URL}/activities/", json=payload)
+    response = requests.post(f"{BASE_URL}/activities/", json=payload, headers=HEADERS)
     print("Status code:", response.status_code)
     print("Response body:", response.text)
     assert response.status_code == 200
-
     data = response.json()
     print("✅ Submitted Activity:", data)
 
+
 def test_get_score(wallet):
     print("→ Testing GET /wallets/{wallet}/score")
-    response = requests.get(f"{BASE_URL}/wallets/{wallet}/score")
+    response = requests.get(f"{BASE_URL}/wallets/{wallet}/score", headers=HEADERS)
     print("Status code:", response.status_code)
     print("Response body:", response.text)
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_get_score(wallet):
 
 def test_get_events(wallet):
     print("→ Testing GET /wallets/{wallet}/events")
-    response = requests.get(f"{BASE_URL}/wallets/{wallet}/events")
+    response = requests.get(f"{BASE_URL}/wallets/{wallet}/events", headers=HEADERS)
     print("Status code:", response.status_code)
     print("Response body:", response.text)
     assert response.status_code == 200
@@ -64,7 +64,7 @@ def test_get_events(wallet):
 
 def test_trigger_claim(wallet):
     print("→ Testing POST /wallets/{wallet}/claim")
-    response = requests.post(f"{BASE_URL}/wallets/{wallet}/claim")
+    response = requests.post(f"{BASE_URL}/wallets/{wallet}/claim", headers=HEADERS)
     print("Status code:", response.status_code)
     print("Response body:", response.text)
     assert response.status_code == 200
@@ -73,13 +73,17 @@ def test_trigger_claim(wallet):
 
 
 def test_get_activity_types():
-    response = requests.get(f"{BASE_URL}/activities/types/")
+    print("→ Testing GET /activities/types/")
+    response = requests.get(f"{BASE_URL}/activities/types/", headers=HEADERS)
+    print("Status code:", response.status_code)
+    print("Response body:", response.text)
     assert response.status_code == 200
     data = response.json()
     print("✅ Activity Types:", data)
 
+
 if __name__ == "__main__":
-    print("Running GreenChain API Tests...\n")
+    print("Running Silvanus API Tests...\n")
     wallet = "0x123ABC456DEF"
     device_id = test_register_device()
     test_submit_activity(device_id)
