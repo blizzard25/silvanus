@@ -79,7 +79,7 @@ def reward_user(user, score):
         txn = contract.functions.reward(user, score).build_transaction({
             "from": account.address,
             "nonce": nonce,
-            "gas": 300000,
+            "gas": 150000,
             "gasPrice": w3.eth.gas_price
         })
 
