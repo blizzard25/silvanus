@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const silvanusTokenAddress = "0x3fcE4d2E8bfF26732EAAf942B67bF31a1e5a965d";
+  const silvanusTokenAddress = process.env.TOKEN_ADDRESS;
   const baseReward = ethers.parseEther("1"); // 1 SVN as base reward
   const tokenAddressParsed = ethers.getAddress(silvanusTokenAddress); // resolves it properly
 

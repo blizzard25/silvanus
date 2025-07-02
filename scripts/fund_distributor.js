@@ -1,13 +1,13 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const tokenAddress = "0x3fcE4d2E8bfF26732EAAf942B67bF31a1e5a965d";
-  const distributorAddress = "0x1F13bdF1B093ECEDc6A8731423083FB24e87DACb";
+  const tokenAddress = process.env.TOKEN_ADDRESS;
+  const distributorAddress = process.env.REWARD_CONTRACT;
 
   const [deployer] = await ethers.getSigners();
   const token = await ethers.getContractAt("Silvanus", tokenAddress);
   
-  const tx = await token.transfer(distributorAddress, ethers.parseEther("1000"));
+  const tx = await token.transfer(distributorAddress, ethers.parseEther("100"));
 
   await tx.wait();
 

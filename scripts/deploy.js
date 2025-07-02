@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const initialSupply = ethers.parseEther("1000000");
+  const initialSupply = ethers.parseEther(process.env.INITIAL_TOKEN_SUPPLY);
 
   const Token = await ethers.getContractFactory("Silvanus");
   const token = await Token.deploy(initialSupply);
