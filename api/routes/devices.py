@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from api.models.device import Device
+from api.auth import get_api_key
 from typing import List
 
-router = APIRouter()
+#router = APIRouter()
+router = APIRouter(tags=['devices'], dependencies=[Depends(get_api_key)])
 devices_db = {}  # Replace with real DB later
 
 @router.post("/", response_model=Device)

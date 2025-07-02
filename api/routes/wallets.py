@@ -1,11 +1,13 @@
 # api/routes/wallets.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from api.auth import get_api_key
 from typing import List
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
 
-router = APIRouter()
+#router = APIRouter()
+router = APIRouter(tags=['wallets'], dependencies=[Depends(get_api_key)])
 
 # In-memory store
 wallet_scores = {}

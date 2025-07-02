@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from api.routes import devices, activities, wallets, activity_types
 
-app = FastAPI(title="Silvanus GreenChain API")
+app = FastAPI(title="Silvanus API")
 
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(activities.router, prefix="/activities", tags=["Activities"])
