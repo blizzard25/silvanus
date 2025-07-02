@@ -2,13 +2,6 @@
 
 Silvanus is a RESTful API designed to track and reward eco-friendly behaviors from devices such as electric vehicles, smart thermostats, solar systems, and more. This API enables registration of devices, submission of green activities, and the claiming of rewards.
 
-## Features
-
-- Register and manage green activity tracking devices
-- Submit green activities (e.g., EV charging, regen braking, thermostat adjustments)
-- Query green activity scores and event logs
-- Claim rewards based on accumulated score
-
 ## Setup Instructions
 
 ### Prerequisites
@@ -21,7 +14,7 @@ Silvanus is a RESTful API designed to track and reward eco-friendly behaviors fr
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/silvanus.git
+git clone https://github.com/blizzard25/silvanus.git
 cd silvanus
 ```
 
@@ -96,7 +89,7 @@ Visit `http://127.0.0.1:8000/docs` for the automatically generated Swagger UI.
 
 ## Running Tests
 
-A simple test script is included:
+A simple test script is included in the python subdirectory of the project:
 
 ```bash
 python test_greenchain_api.py
