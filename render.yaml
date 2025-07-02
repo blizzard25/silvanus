@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: silvanus-api
+    env: python
+    buildCommand: pip install -r api/requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: SEPOLIA_RPC_URL
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false
+      - key: WALLET_ADDRESSES
+        sync: false
+      - key: DIS_WALLET_ADDRESS
+        sync: false
+      - key: RECIPIENT_WALLET_ADDRESS
+        sync: false
+      - key: REWARD_CONTRACT
+        sync: false
+      - key: TOKEN_ADDRESS
+        sync: false
+      - key: INITIAL_TOKEN_SUPPLY
+        sync: false
+      - key: API_KEY
+        sync: false
+    buildFilter:
+      paths:
+        - api/**
