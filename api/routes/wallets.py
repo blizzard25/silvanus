@@ -76,6 +76,7 @@ def claim_rewards(wallet: str):
 
     try:
         nonce = w3.eth.get_transaction_count(sender_address)
+
         txn = contract.functions.distributeReward(wallet, int(score)).build_transaction({
             'from': sender_address,
             'nonce': nonce,
@@ -87,7 +88,15 @@ def claim_rewards(wallet: str):
         signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
         print(f"[Claim] Signed transaction: {signed_txn}")
 
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        # Compatibility: Web3.py v6 uses `raw_transaction`, v5 uses `rawTransaction`
+        if hasattr(signed_txn, "rawTransaction"):
+            raw_tx = signed_txn.rawTransaction
+        elif hasattr(signed_txn, "raw_transaction"):
+            raw_tx = signed_txn.raw_transaction
+        else:
+            raise Exception("SignedTransaction has no raw transaction field")
+
+        tx_hash = w3.eth.send_raw_transaction(raw_tx)
         print(f"[Claim] Submitted tx hash: {tx_hash.hex()}")
 
         wallet_scores[wallet] = 0
