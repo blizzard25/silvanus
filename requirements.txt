@@ -3,3 +3,4 @@ uvicorn
 pydantic
 python-dotenv
 slowapi==0.1.5
+web3
