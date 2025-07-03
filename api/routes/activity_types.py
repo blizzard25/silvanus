@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends
 from api.auth import get_api_key
 from typing import List
 
-#router = APIRouter()
 router = APIRouter(tags=['activity-types'], dependencies=[Depends(get_api_key)])
 
 @router.get("/activities/types", response_model=List[dict])

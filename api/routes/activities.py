@@ -3,7 +3,6 @@ from api.models.activity import GreenActivity
 from api.auth import get_api_key
 from typing import List
 
-#router = APIRouter()
 router = APIRouter(tags=['activities'], dependencies=[Depends(get_api_key)])
 activity_log = []
 

@@ -3,7 +3,6 @@ from api.models.device import Device
 from api.auth import get_api_key
 from typing import List
 
-#router = APIRouter()
 router = APIRouter(tags=['devices'], dependencies=[Depends(get_api_key)])
 devices_db = {}  # Replace with real DB later
 
