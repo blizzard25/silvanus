@@ -1,7 +1,8 @@
 import requests
 from datetime import datetime, timezone
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://silvanus-a4nt.onrender.com"
+
 API_KEY = "12062569evan1206"
 HEADERS = {"X-API-Key": API_KEY}
 
