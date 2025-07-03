@@ -28,7 +28,7 @@ def submit_activity(activity: GreenActivity):
         raise HTTPException(status_code=404, detail="Device not registered")
 
     # Lookup wallet and assign score
-    wallet = device["owner"]
+    wallet = device.owner
     multiplier = activity_weights.get(activity.activity_type, 1.0)
     points = activity.value * multiplier
     wallet_scores[wallet] = wallet_scores.get(wallet, 0) + points
