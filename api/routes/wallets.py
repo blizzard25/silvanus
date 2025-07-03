@@ -17,7 +17,6 @@ router = APIRouter(tags=['wallets'], dependencies=[Depends(get_api_key)])
 wallet_scores = {}
 wallet_events = {}
 
-# Load blockchain config
 SEPOLIA_RPC_URL = os.getenv("SEPOLIA_RPC_URL")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 REWARD_CONTRACT = os.getenv("REWARD_CONTRACT")
