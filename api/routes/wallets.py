@@ -25,7 +25,7 @@ TOKEN_ADDRESS = os.getenv("TOKEN_ADDRESS")
 
 # Connect to Web3
 w3 = Web3(Web3.HTTPProvider(SEPOLIA_RPC_URL))
-sender_address = w3.eth.account.privateKeyToAccount(PRIVATE_KEY).address
+sender_address = w3.eth.account.from_key(PRIVATE_KEY).address
 
 # ABI from ev_stream.py
 reward_distributor_abi = [
