@@ -69,13 +69,13 @@ def get_wallet_events(wallet: str):
 @router.post("/wallets/{wallet}/claim", response_model=ClaimResponse)
 def claim_rewards(wallet: str):
     score = wallet_scores.get(wallet, 0)
+    print(f"[Claim] Wallet: {wallet}, Score: {score}")
 
     if score <= 0:
         raise HTTPException(status_code=400, detail="Nothing to claim")
 
     try:
         nonce = w3.eth.get_transaction_count(sender_address)
-
         txn = contract.functions.distributeReward(wallet, int(score)).build_transaction({
             'from': sender_address,
             'nonce': nonce,
@@ -83,19 +83,17 @@ def claim_rewards(wallet: str):
             'gasPrice': w3.to_wei('10', 'gwei')
         })
 
+        print(f"[Claim] Raw transaction: {txn}")
         signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
+        print(f"[Claim] Signed transaction: {signed_txn}")
 
-        # Compatibility patch for Web3.py v6+
-        try:
-            raw_tx = signed_txn.rawTransaction
-        except AttributeError:
-            raw_tx = signed_txn.raw_bytes
-
-        tx_hash = w3.eth.send_raw_transaction(raw_tx)
+        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        print(f"[Claim] Submitted tx hash: {tx_hash.hex()}")
 
         wallet_scores[wallet] = 0
 
         return {"txHash": tx_hash.hex(), "status": "submitted"}
 
     except Exception as e:
+        print(f"[Claim] Exception: {e}")
         raise HTTPException(status_code=500, detail=f"Error submitting transaction: {str(e)}")
