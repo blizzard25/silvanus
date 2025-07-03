@@ -16,3 +16,5 @@ def register_device(device: Device):
 @router.get("/", response_model=List[Device])
 def list_devices():
     return list(devices_db.values())
+
+register_devices = devices_db
