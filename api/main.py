@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from api.routes import devices, activities, wallets, activity_types, healthz
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
