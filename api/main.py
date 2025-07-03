@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api.routes import devices, activities, wallets, activity_types
+from api.routes import devices, activities, wallets, activity_types, healthz
 
 app = FastAPI(title="Silvanus API")
 
@@ -7,4 +7,4 @@ app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(activities.router, prefix="/activities", tags=["Activities"])
 app.include_router(wallets.router, tags=["Wallets"])
 app.include_router(activity_types.router, tags=["Activity Types"])
-
+app.include_router(healthz.router)
