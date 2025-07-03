@@ -84,9 +84,15 @@ def claim_rewards(wallet: str):
         })
 
         signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
-        tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
 
-        # Reset the score after successful submission
+        # Compatibility patch for Web3.py v6+
+        try:
+            raw_tx = signed_txn.rawTransaction
+        except AttributeError:
+            raw_tx = signed_txn.raw_bytes
+
+        tx_hash = w3.eth.send_raw_transaction(raw_tx)
+
         wallet_scores[wallet] = 0
 
         return {"txHash": tx_hash.hex(), "status": "submitted"}
