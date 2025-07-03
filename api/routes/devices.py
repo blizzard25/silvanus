@@ -17,4 +17,4 @@ def register_device(device: Device):
 def list_devices():
     return list(devices_db.values())
 
-register_devices = devices_db
+#register_devices = devices_db
