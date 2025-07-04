@@ -1,81 +1,138 @@
-# Silvanus API
+# Silvanus GreenChain API Documentation
 
-Silvanus is a RESTful API designed to track and reward eco-friendly behaviors from devices such as electric vehicles, smart thermostats, solar systems, and more. This API enables registration of devices, submission of green activities, and the claiming of rewards.
+This API allows devices and applications to report green activities and earn rewards in $SVN tokens. Hosted on **Render**, this REST API provides endpoints to register devices, submit activities, check wallet scores, view events, and claim token rewards.
 
-## Live API URL
+---
 
-The API is live and accessible at:
+## Authentication
 
-**https://silvanus-a4nt.onrender.com**
+All requests must include an API key:
 
-Interactive documentation (Swagger UI) is available at:
-
-**https://silvanus-a4nt.onrender.com/docs**
-
-## Setup Instructions (Local Use Optional)
-
-### Prerequisites
-
-- Python 3.10+
-- `pip` for managing packages
-
-### Installation (Local Dev Only)
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/blizzard25/silvanus.git
-cd silvanus
+**Header:**
+```
+x-api-key: YOUR_API_KEY_HERE
 ```
 
-2. Create a virtual environment (optional but recommended):
-
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
-
-```bash
-pip install -r api/requirements.txt
-```
-
-### Running the API Server Locally
-
-Only required for development:
-
-```bash
-uvicorn api.main:app --reload
-```
+---
 
 ## API Endpoints
 
-All endpoints require an API key to be sent in the header:  
-`X-API-Key: your-api-key`
+### `POST /devices/`
 
-### Device Management
+Register a device.
 
-- `POST /devices/`: Register a device
-- `GET /devices/`: List all registered devices
+**Payload:**
+```json
+{
+  "device_id": "RewardTestSolar2",
+  "owner_wallet": "0x1234567890abcdef...",
+  "location": "Tennessee"
+}
+```
 
-### Activity Submission
+**Response:** `200 OK`
+```json
+{
+  "device_id": "RewardTestSolar2",
+  "owner_wallet": "0x1234567890abcdef...",
+  "location": "Tennessee"
+}
+```
 
-- `POST /activities/`: Submit a green activity
+---
 
-### Wallet Management
+### `POST /activities/`
 
-- `GET /wallets/{wallet}/score`: Retrieve green score for a wallet
-- `GET /wallets/{wallet}/events`: List all claim events for a wallet
-- `POST /wallets/{wallet}/claim`: Trigger a reward claim
+Submit a green activity (e.g. EV miles, solar charging, regeneration).
 
-### Activity Metadata
+**Payload:**
+```json
+{
+  "device_id": "RewardTestSolar2",
+  "activity_type": "solar_export",
+  "value": 100.0,
+  "timestamp": "2025-07-03T23:22:14.913181Z"
+}
+```
 
-- `GET /activities/types`: Retrieve metadata and expected fields for activity types
+**Response:** `200 OK`
 
-### Health Check
+---
 
-- `GET /healthz`: Simple endpoint for health monitoring
+### `GET /wallets/{wallet}/score`
+
+Returns the current reward score for a wallet.
+
+**Example:**
+```
+GET /wallets/0x123...abcd/score
+```
+
+**Response:**
+```json
+{
+  "wallet": "0x123...abcd",
+  "score": 150.0
+}
+```
+
+---
+
+### `GET /wallets/{wallet}/events`
+
+Returns all green activity events submitted for a wallet.
+
+**Example:**
+```
+GET /wallets/0x123...abcd/events
+```
+
+**Response:**
+```json
+[
+  {
+    "activity": "solar_export",
+    "value": 100.0,
+    "timestamp": "2025-07-03T23:22:14.913181Z",
+    "details": {}
+  }
+]
+```
+
+---
+
+### `POST /wallets/{wallet}/claim`
+
+Submit a claim to receive $SVN tokens based on your score.
+
+**Example:**
+```
+POST /wallets/0x123...abcd/claim
+```
+
+**Response on success:**
+```json
+{
+  "txHash": "0xabc123...",
+  "status": "submitted"
+}
+```
+
+**Error (Nothing to claim):**
+```json
+{
+  "detail": "Nothing to claim"
+}
+```
+
+**Error (Blockchain issue):**
+```json
+{
+  "detail": "Error submitting transaction: ..."
+}
+```
+
+---
 
 ## Activity Types (Example)
 
@@ -104,16 +161,38 @@ All endpoints require an API key to be sent in the header:
 ]
 ```
 
-## Running Tests
+---
 
-A test script is included in the `python` subdirectory:
+## Reward Calculation
 
-```bash
-python test_greenchain_api.py
+1. **Score = activity_value × activity_weight**
+    - e.g., `solar_export` has a weight of `1.5`
+    - 100.0 solar_export → 150 score
+2. **Reward = (score × baseReward) / log10(totalEvents + 10)`**
+    - Rewards reduce over time as total events increase.
+    - baseReward is currently `1e18` (1 $SVN in wei).
+
+---
+
+## Example Usage Flow
+
+1. `POST /devices/` → register your device
+2. `POST /activities/` → log green activity
+3. `GET /wallets/{wallet}/score` → check updated score
+4. `POST /wallets/{wallet}/claim` → claim rewards ($SVN tokens)
+
+---
+
+## Health Check
+
+```
+GET /healthz
 ```
 
-Make sure the base URL and `X-API-Key` are set correctly in the script.
+Returns `200 OK` if the API is up.
 
-## License
+---
 
-This project is licensed under the MIT License.
+## Support
+
+If you encounter issues using the API or have questions about reward mechanics, please contact the system administrator.
