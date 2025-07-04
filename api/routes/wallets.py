@@ -83,7 +83,9 @@ def claim_rewards(wallet: str):
             'from': sender_address,
             'nonce': nonce,
             'gas': 300000,
-            'gasPrice': w3.to_wei('12', 'gwei')  # slightly higher gas price to avoid "underpriced" errors
+            'maxFeePerGas': w3.to_wei('25', 'gwei'),
+            'maxPriorityFeePerGas': w3.to_wei('2', 'gwei'),
+            'chainId': w3.eth.chain_id
         })
 
         print(f"[Claim] Raw transaction: {txn}")
