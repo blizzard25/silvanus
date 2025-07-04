@@ -1,4 +1,4 @@
-# Silvanus GreenChain API Documentation
+# Silvanus API Documentation
 
 This API allows devices and applications to report green activities and earn rewards in $SVN tokens. Hosted on **Render**, this REST API provides endpoints to register devices, submit activities, check wallet scores, view events, and claim token rewards.
 
