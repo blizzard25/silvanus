@@ -26,7 +26,7 @@ TOKEN_ADDRESS = os.getenv("TOKEN_ADDRESS")
 w3 = Web3(Web3.HTTPProvider(SEPOLIA_RPC_URL))
 sender_address = w3.eth.account.from_key(PRIVATE_KEY).address
 
-# ABI from ev_stream.py
+# ABI for rewards smart contract
 reward_distributor_abi = [
     {
         "inputs": [
