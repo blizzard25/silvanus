@@ -33,7 +33,7 @@ reward_distributor_abi = [
             {"internalType": "address", "name": "user", "type": "address"},
             {"internalType": "uint256", "name": "amount", "type": "uint256"}
         ],
-        "name": "distributeReward",
+        "name": "reward",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -77,7 +77,7 @@ def claim_rewards(wallet: str):
     try:
         nonce = w3.eth.get_transaction_count(sender_address)
 
-        txn = contract.functions.distributeReward(wallet, int(score)).build_transaction({
+        txn = contract.functions.reward(wallet, int(score)).build_transaction({
             'from': sender_address,
             'nonce': nonce,
             'gas': 200000,
