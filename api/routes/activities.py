@@ -47,10 +47,13 @@ class RewardResponse(BaseModel):
 @router.post("/submit", response_model=RewardResponse)
 def submit_activity(activity: ActivitySubmission):
     try:
-        # Convert to integer score (kWh)
         kwh = int(activity.value)
 
-        # Get nonce with 'pending' to avoid collision
+        print(f"[Submit] Wallet: {activity.wallet_address}")
+        print(f"[Submit] Activity Type: {activity.activity_type}")
+        print(f"[Submit] kWh Submitted: {kwh}")
+        print(f"[Submit] Details: {activity.details}")  # <-- Add this line
+
         nonce = w3.eth.get_transaction_count(sender_address, 'pending')
         print(f"[Submit] Nonce (pending): {nonce}")
 
@@ -63,10 +66,7 @@ def submit_activity(activity: ActivitySubmission):
             'chainId': w3.eth.chain_id
         })
 
-        print(f"[Submit] Raw transaction: {txn}")
         signed_txn = w3.eth.account.sign_transaction(txn, private_key=PRIVATE_KEY)
-
-        # Support for both web3.py v5 and v6
         raw_tx = getattr(signed_txn, "rawTransaction", getattr(signed_txn, "raw_transaction", None))
         if not raw_tx:
             raise Exception("SignedTransaction has no raw transaction field")
