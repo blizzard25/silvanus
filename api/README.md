@@ -1,140 +1,61 @@
-# Silvanus API Documentation
 
-This API allows devices and applications to report green activities and earn rewards in $SVN tokens. Hosted on **Render**, this REST API provides endpoints to register devices, submit activities, check wallet scores, view events, and claim token rewards.
+# Silvanus API (GreenChain MVP)
+
+This API allows users to submit green energy activity data and receive $SVN token rewards on-chain. Hosted on **Render**, this system directly interacts with a smart contract deployed on Ethereum Sepolia Testnet.
 
 ---
 
 ## Authentication
 
-All requests must include an API key:
+All requests require an API key:
 
-**Header:**
 ```
-x-api-key: YOUR_API_KEY_HERE
-```
-
----
-
-## API Endpoints
-
-### `POST /devices/`
-
-Register a device.
-
-**Payload:**
-```json
-{
-  "device_id": "RewardTestSolar2",
-  "owner_wallet": "0x1234567890abcdef...",
-  "location": "Tennessee"
-}
-```
-
-**Response:** `200 OK`
-```json
-{
-  "device_id": "RewardTestSolar2",
-  "owner_wallet": "0x1234567890abcdef...",
-  "location": "Tennessee"
-}
+Header: X-API-Key: YOUR_API_KEY
 ```
 
 ---
 
-### `POST /activities/`
+## Green Activity Submission
 
-Submit a green activity (e.g. EV miles, solar charging, regeneration).
+### `POST /activities/submit`
 
-**Payload:**
+Submit a green energy activity (e.g., solar export, EV charging, thermostat adjustment).
+
+**Payload Example:**
+
 ```json
 {
-  "device_id": "RewardTestSolar2",
+  "wallet_address": "0x1234567890abcdef...",
   "activity_type": "solar_export",
-  "value": 100.0,
-  "timestamp": "2025-07-03T23:22:14.913181Z"
-}
-```
-
-**Response:** `200 OK`
-
----
-
-### `GET /wallets/{wallet}/score`
-
-Returns the current reward score for a wallet.
-
-**Example:**
-```
-GET /wallets/0x123...abcd/score
-```
-
-**Response:**
-```json
-{
-  "wallet": "0x123...abcd",
-  "score": 150.0
-}
-```
-
----
-
-### `GET /wallets/{wallet}/events`
-
-Returns all green activity events submitted for a wallet.
-
-**Example:**
-```
-GET /wallets/0x123...abcd/events
-```
-
-**Response:**
-```json
-[
-  {
-    "activity": "solar_export",
-    "value": 100.0,
-    "timestamp": "2025-07-03T23:22:14.913181Z",
-    "details": {}
+  "value": 5.0,
+  "details": {
+    "note": "Test event from Raspberry Pi solar tracker",
+    "platform": "Linux arm64",
+    "timestamp": "2025-07-05T15:20:12Z"
   }
-]
+}
 ```
 
----
+**Response Example:**
 
-### `POST /wallets/{wallet}/claim`
-
-Submit a claim to receive $SVN tokens based on your score.
-
-**Example:**
-```
-POST /wallets/0x123...abcd/claim
-```
-
-**Response on success:**
 ```json
 {
   "txHash": "0xabc123...",
-  "status": "submitted"
+  "status": "confirmed"
 }
 ```
 
-**Error (Nothing to claim):**
-```json
-{
-  "detail": "Nothing to claim"
-}
-```
-
-**Error (Blockchain issue):**
-```json
-{
-  "detail": "Error submitting transaction: ..."
-}
-```
+- The contract calculates and distributes token rewards using a log-based diminishing formula.
+- `value` is the number of kilowatt-hours (kWh).
+- `details` can include optional diagnostic info.
 
 ---
 
-## Activity Types (Example)
+## Supported Activity Types
+
+### `GET /activities/types`
+
+Returns the current list of supported green activities and expected fields in `details`.
 
 ```json
 [
@@ -163,36 +84,39 @@ POST /wallets/0x123...abcd/claim
 
 ---
 
-## Reward Calculation
+## On-Chain Reward Logic
 
-1. **Score = activity_value × activity_weight**
-    - e.g., `solar_export` has a weight of `1.5`
-    - 100.0 solar_export → 150 score
-2. **Reward = (score × baseReward) / log10(totalEvents + 10)`**
-    - Rewards reduce over time as total events increase.
-    - baseReward is currently `1e18` (1 $SVN in wei).
+Smart contract: `GreenRewardDistributor.sol` on Sepolia
 
----
-
-## Example Usage Flow
-
-1. `POST /devices/` → register your device
-2. `POST /activities/` → log green activity
-3. `GET /wallets/{wallet}/score` → check updated score
-4. `POST /wallets/{wallet}/claim` → claim rewards ($SVN tokens)
-
----
-
-## Health Check
-
-```
-GET /healthz
+```solidity
+adjustedReward = (score * baseReward) / log10(totalEvents + 10)
 ```
 
-Returns `200 OK` if the API is up.
+- Score = raw kWh value
+- `baseReward` is set in the contract (e.g., 1 $SVN = 1e18 wei)
+- `log10` penalty increases as more events are submitted
 
 ---
 
-## Support
+## Deprecated Routes (No Longer Used)
 
-If you encounter issues using the API or have questions about reward mechanics, please contact the system administrator.
+- `POST /devices/`
+- `GET /wallets/{wallet}/score`
+- `GET /wallets/{wallet}/events`
+- `POST /wallets/{wallet}/claim`
+
+These routes were part of a temporary in-memory scoring system and are now obsolete.
+
+---
+
+## 🚦 Health Check
+
+### `GET /healthz`
+
+Returns `200 OK` if the API is online.
+
+---
+
+## Contact & Support
+
+Questions or issues? Please contact the administrator at **support@silvanusproject.com** or file a GitHub issue.
