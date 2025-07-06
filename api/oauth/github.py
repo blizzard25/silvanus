@@ -1,24 +1,45 @@
-# oauth/github.py
+# api/oauth/github.py
+import os
 import requests
+from urllib.parse import urlencode
+
 from api.oauth.manager import OAuthProvider, register_provider
 
 CLIENT_ID = "Ov23liUpkKdBsXGV3K1p"
 CLIENT_SECRET = "833c113479be3858e5f7e2cad7dde83bb1ba03b4"
-AUTH_URL = "https://github.com/login/oauth/authorize"
+AUTHORIZATION_BASE_URL = "https://github.com/login/oauth/authorize"
 TOKEN_URL = "https://github.com/login/oauth/access_token"
+DEFAULT_REDIRECT_URI = "https://silvanus-a4nt.onrender.com/oauth/callback/github"
 
-@register_provider("github")
-class GitHubOAuth(OAuthProvider):
-    def get_auth_url(self, redirect_uri: str) -> str:
-        return f"{AUTH_URL}?client_id={CLIENT_ID}&redirect_uri={redirect_uri}&scope=read:user"
+class GitHubOAuthProvider(OAuthProvider):
+    def get_auth_url(self, redirect_uri: str = None) -> str:
+        redirect_uri = redirect_uri or DEFAULT_REDIRECT_URI
 
-    def exchange_code(self, code: str, redirect_uri: str):
-        headers = {'Accept': 'application/json'}
-        response = requests.post(TOKEN_URL, data={
+        params = {
+            "client_id": CLIENT_ID,
+            "redirect_uri": redirect_uri,
+            "scope": "read:user user:email",
+            "allow_signup": "true"
+        }
+        return f"{AUTHORIZATION_BASE_URL}?{urlencode(params)}"
+
+    def exchange_code(self, code: str, redirect_uri: str = None) -> dict:
+        redirect_uri = redirect_uri or DEFAULT_REDIRECT_URI
+
+        data = {
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "code": code,
-            "redirect_uri": redirect_uri,
-        }, headers=headers)
+            "redirect_uri": redirect_uri
+        }
+
+        headers = {
+            "Accept": "application/json"
+        }
+
+        response = requests.post(TOKEN_URL, data=data, headers=headers)
         response.raise_for_status()
         return response.json()
+
+# Register the provider
+register_provider("github", GitHubOAuthProvider())

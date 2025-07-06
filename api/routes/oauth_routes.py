@@ -1,15 +1,13 @@
-# api/routes/oauth.py
+# api/routes/oauth_routes.py
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from typing import Optional
 from api.oauth.manager import OAUTH_PROVIDERS
 
-print("OAuth router loaded ✅")
-
 router = APIRouter(tags=["OAuth"])
 
 @router.get("/login/{provider}")
-def oauth_login(provider: str, redirect_uri: Optional[str] = Query(...)):
+def oauth_login(provider: str, redirect_uri: Optional[str] = Query(None)):
     """
     Redirects the user to the third-party OAuth login page for the selected provider.
     """
@@ -20,7 +18,7 @@ def oauth_login(provider: str, redirect_uri: Optional[str] = Query(...)):
     return {"auth_url": auth_url}
 
 @router.get("/callback/{provider}")
-def oauth_callback(provider: str, code: str = Query(...), redirect_uri: str = Query(...)):
+def oauth_callback(provider: str, code: str = Query(...), redirect_uri: Optional[str] = None):
     """
     Handles the OAuth callback by exchanging the `code` for access tokens.
     """
