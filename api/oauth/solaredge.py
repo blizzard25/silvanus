@@ -1,6 +1,6 @@
 # oauth/solaredge.py
 import requests
-from oauth.manager import OAuthProvider, register_provider
+from api.oauth.manager import OAuthProvider, register_provider
 
 CLIENT_ID = "YOUR_SOLAREDGE_CLIENT_ID"
 CLIENT_SECRET = "YOUR_CLIENT_SECRET"

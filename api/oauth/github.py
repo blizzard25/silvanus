@@ -1,6 +1,6 @@
 # oauth/github.py
 import requests
-from oauth.manager import OAuthProvider, register_provider
+from api.oauth.manager import OAuthProvider, register_provider
 
 CLIENT_ID = "Ov23liUpkKdBsXGV3K1p"
 CLIENT_SECRET = "833c113479be3858e5f7e2cad7dde83bb1ba03b4"
