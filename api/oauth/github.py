@@ -6,8 +6,8 @@ from typing import Optional
 
 from api.oauth.manager import OAuthProvider, register_provider
 
-CLIENT_ID = "Ov23liUpkKdBsXGV3K1p"
-CLIENT_SECRET = "833c113479be3858e5f7e2cad7dde83bb1ba03b4"
+CLIENT_ID = "GITHUB_CLIENT_ID"
+CLIENT_SECRET = "GITHUB_CLIENT_SECRET"
 DEFAULT_REDIRECT_URI = "https://silvanus-a4nt.onrender.com/oauth/callback/github"
 AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 TOKEN_URL = "https://github.com/login/oauth/access_token"
