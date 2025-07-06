@@ -1,6 +1,8 @@
 from fastapi import FastAPI, Request
 from api.routes import devices, activities, wallets, activity_types, healthz, oauth_routes
 
+from api.oauth import github
+
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
