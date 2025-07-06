@@ -3,12 +3,12 @@ from datetime import datetime, timezone
 
 BASE_URL = "https://silvanus-a4nt.onrender.com"
 
-API_KEY = "12062569evan1206"
+API_KEY = "westonsux69"
 HEADERS = {"X-API-Key": API_KEY}
 
 def test_register_device():
     payload = {
-        "device_id": "EV Tracker #1",
+        "device_id": "EV Tracker #2",
         "device_type": "ev",
         "owner": "0x1234567890abcdef1234567890abcdef12345678"
     }
