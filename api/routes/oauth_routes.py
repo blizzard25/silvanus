@@ -63,3 +63,21 @@ def oauth_callback(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OAuth callback failed: {str(e)}")
+
+@router.post("/test/store-token")
+def test_store_token(db: Session = Depends(get_db)):
+    test_token = OAuthToken(
+        wallet_address="0x123abc",
+        provider="github",
+        access_token="fake_access_token",
+        refresh_token="fake_refresh_token",
+        expires_at=datetime.utcnow() + timedelta(days=7)
+    )
+    db.add(test_token)
+    db.commit()
+    db.refresh(test_token)
+    return {"status": "stored", "id": test_token.id}
+
+@router.get("/test/list-tokens")
+def list_tokens(db: Session = Depends(get_db)):
+    return db.query(OAuthToken).all()
