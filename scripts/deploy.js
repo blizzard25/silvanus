@@ -1,15 +1,15 @@
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-  const initialSupply = ethers.parseEther(process.env.INITIAL_TOKEN_SUPPLY);
+  const initialSupply = ethers.parseEther("100000000");
 
-  const Token = await ethers.getContractFactory("Silvanus");
-  const token = await Token.deploy(initialSupply);
+  const Silvanus = await ethers.getContractFactory("Silvanus");
+  const proxy = await upgrades.deployProxy(Silvanus, [initialSupply], {
+    initializer: "initialize"
+  });
 
-  // Wait for deployment to complete
-  await token.waitForDeployment();
-
-  console.log("Silvanus deployed to:", await token.getAddress());
+  await proxy.waitForDeployment();
+  console.log("Silvanus (proxy) deployed to:", await proxy.getAddress());
 }
 
 main().catch((error) => {
