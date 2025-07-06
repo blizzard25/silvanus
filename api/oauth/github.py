@@ -2,6 +2,7 @@
 import os
 import requests
 from urllib.parse import urlencode
+from typing import Optional
 
 from api.oauth.manager import OAuthProvider, register_provider
 
