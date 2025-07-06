@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from typing import Optional
-from oauth.manager import OAUTH_PROVIDERS
+from api.oauth.manager import OAUTH_PROVIDERS
 
 print("OAuth router loaded ✅")
 
