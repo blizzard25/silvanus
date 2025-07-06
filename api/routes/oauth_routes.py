@@ -35,9 +35,13 @@ def oauth_callback(
 ):
     """
     Handles the OAuth callback by exchanging the `code` for access tokens and storing them.
+    Requires a wallet_address to associate the token.
     """
     if provider not in OAUTH_PROVIDERS:
         raise HTTPException(status_code=404, detail="Unsupported OAuth provider")
+
+    if not wallet_address:
+        raise HTTPException(status_code=400, detail="Missing wallet_address")
 
     try:
         tokens = OAUTH_PROVIDERS[provider].exchange_code(code, redirect_uri)
@@ -56,6 +60,7 @@ def oauth_callback(
         return {
             "message": "OAuth success",
             "provider": provider,
+            "wallet_address": wallet_address,
             "access_token": tokens.get("access_token"),
             "refresh_token": tokens.get("refresh_token"),
             "expires_in": tokens.get("expires_in"),
