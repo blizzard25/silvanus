@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from api.routes import devices, activities, wallets, activity_types, healthz
+from api.routes import devices, activities, wallets, activity_types, healthz, oauth_routes
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -19,6 +19,7 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
 app.include_router(activities.router, prefix="/activities", tags=["Activities"])
+app.include_router(oauth_routes.router, prefix="/oauth", tags=["OAuth"])
 app.include_router(wallets.router, tags=["Wallets"])
 app.include_router(activity_types.router, tags=["Activity Types"])
 app.include_router(healthz.router)
