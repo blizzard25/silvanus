@@ -45,12 +45,12 @@ def poll_all_tokens():
             })
 
             if response.status_code == 200:
-                print(f"✅ Submitted {data['kwh']} kWh for {token.wallet_address}")
+                print(f"Submitted {data['kwh']} kWh for {token.wallet_address}")
             else:
-                print(f"❌ Failed to submit for {token.wallet_address}: {response.text}")
+                print(f"Failed to submit for {token.wallet_address}: {response.text}")
 
         except Exception as e:
-            print(f"⚠️ Polling error for {token.wallet_address}: {e}")
+            print(f"Polling error for {token.wallet_address}: {e}")
 
     db.close()
 
