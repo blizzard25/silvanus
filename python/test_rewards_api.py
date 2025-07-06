@@ -2,12 +2,15 @@ import requests
 from datetime import datetime, timezone
 import platform
 import socket
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_URL = "https://silvanus-a4nt.onrender.com"
 API_KEY = "12062569evan1206"
 HEADERS = {"X-API-Key": API_KEY}
 
-owner_wallet = "0x54af560439ab8EF601E72f5E7d51CE161759ac54"
+owner_wallet = os.getenv("RECIPIENT_WALLET_ADDRESS")
 
 # Submit a solar_export event with diagnostics
 activity_payload = {
