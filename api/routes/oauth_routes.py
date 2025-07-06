@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from api.oauth.manager import OAUTH_PROVIDERS
 from api.models.tokens import OAuthToken
 from api.database import get_db
+from api.polling import poll_all_tokens
 
 router = APIRouter(tags=["OAuth"])
 
@@ -86,3 +87,8 @@ def test_store_token(db: Session = Depends(get_db)):
 @router.get("/test/list-tokens")
 def list_tokens(db: Session = Depends(get_db)):
     return db.query(OAuthToken).all()
+
+@router.get("/test/poll")
+def test_polling():
+    poll_all_tokens()
+    return {"status": "Polling complete"}
