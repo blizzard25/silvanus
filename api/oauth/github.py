@@ -13,7 +13,8 @@ TOKEN_URL = "https://github.com/login/oauth/access_token"
 
 @register_provider("github")
 class GitHubOAuthProvider(OAuthProvider):
-    def get_auth_url(self, redirect_uri: str = DEFAULT_REDIRECT_URI) -> str:
+    def get_auth_url(self, redirect_uri: Optional[str] = None) -> str:
+        redirect_uri = redirect_uri or DEFAULT_REDIRECT_URI
         params = {
             "client_id": CLIENT_ID,
             "redirect_uri": redirect_uri,
