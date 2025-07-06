@@ -2,6 +2,7 @@ import requests
 from datetime import datetime, timezone
 import platform
 import socket
+import os
 from dotenv import load_dotenv
 
 load_dotenv()
