@@ -1,45 +1,38 @@
-# api/oauth/github.py
+# oauth/github.py
 import os
 import requests
 from urllib.parse import urlencode
 
-from api.oauth.manager import OAuthProvider, register_provider
+from oauth.manager import OAuthProvider, register_provider
 
 CLIENT_ID = "Ov23liUpkKdBsXGV3K1p"
 CLIENT_SECRET = "833c113479be3858e5f7e2cad7dde83bb1ba03b4"
-AUTHORIZATION_BASE_URL = "https://github.com/login/oauth/authorize"
-TOKEN_URL = "https://github.com/login/oauth/access_token"
 DEFAULT_REDIRECT_URI = "https://silvanus-a4nt.onrender.com/oauth/callback/github"
+AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
+TOKEN_URL = "https://github.com/login/oauth/access_token"
 
+@register_provider("github")
 class GitHubOAuthProvider(OAuthProvider):
-    def get_auth_url(self, redirect_uri: str = None) -> str:
-        redirect_uri = redirect_uri or DEFAULT_REDIRECT_URI
-
+    def get_auth_url(self, redirect_uri: str = DEFAULT_REDIRECT_URI) -> str:
         params = {
             "client_id": CLIENT_ID,
             "redirect_uri": redirect_uri,
             "scope": "read:user user:email",
-            "allow_signup": "true"
         }
-        return f"{AUTHORIZATION_BASE_URL}?{urlencode(params)}"
+        return f"{AUTHORIZE_URL}?{urlencode(params)}"
 
-    def exchange_code(self, code: str, redirect_uri: str = None) -> dict:
+    def exchange_code(self, code: str, redirect_uri: str = DEFAULT_REDIRECT_URI) -> dict:
         redirect_uri = redirect_uri or DEFAULT_REDIRECT_URI
 
         data = {
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "code": code,
-            "redirect_uri": redirect_uri
+            "redirect_uri": redirect_uri,
         }
 
-        headers = {
-            "Accept": "application/json"
-        }
-
+        headers = {"Accept": "application/json"}
         response = requests.post(TOKEN_URL, data=data, headers=headers)
         response.raise_for_status()
-        return response.json()
 
-# Register the provider
-register_provider("github", GitHubOAuthProvider())
+        return response.json()
