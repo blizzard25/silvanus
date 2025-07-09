@@ -1,5 +1,5 @@
 
-# Silvanus API (GreenChain MVP)
+# Silvanus API
 
 This API allows users to submit green energy activity data and receive $SVN token rewards on-chain. Hosted on **Render**, this system directly interacts with a smart contract deployed on Ethereum Sepolia Testnet.
 
