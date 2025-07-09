@@ -16,12 +16,12 @@ contract Silvanus is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
 
     function initialize(uint256 initialSupply) public initializer {
         __ERC20_init("Silvanus", "SVN");
-       __Ownable_init(msg.sender);
+        __Ownable_init(msg.sender);
 
-__Ownable2Step_init();
+        __Ownable2Step_init();
         __UUPSUpgradeable_init();
 
-        burnRate = 50; // 0.5%
+        burnRate = 0; // altering burn rate to 0 initially, will ugprade later
         _mint(msg.sender, initialSupply);
     }
 
