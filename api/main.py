@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request
 from api.routes import devices, activities, wallets, activity_types, healthz, oauth_routes
+from api.routes.v1 import activities as v1_activities
+from api.routes.v2 import activities as v2_activities
 from api.oauth import github 
 from api.database import engine, Base
 from api.models import tokens
@@ -42,9 +44,13 @@ app.add_middleware(SlowAPIMiddleware)
 # Create tables if they don’t exist
 Base.metadata.create_all(bind=engine)
 
-# Register routes
+# Register versioned routes
+app.include_router(v1_activities.router, prefix="/v1/activities", tags=["V1 Activities"])
+app.include_router(v2_activities.router, prefix="/v2/activities", tags=["V2 Activities"])
+
+# Register unversioned routes (backward compatibility - defaults to V1 behavior)
+app.include_router(activities.router, prefix="/activities", tags=["Activities (Legacy)"])
 app.include_router(devices.router, prefix="/devices", tags=["Devices"])
-app.include_router(activities.router, prefix="/activities", tags=["Activities"])
 app.include_router(oauth_routes.router, prefix="/oauth", tags=["OAuth"])
 app.include_router(wallets.router, tags=["Wallets"])
 app.include_router(activity_types.router, tags=["Activity Types"])

@@ -7,7 +7,7 @@ import os
 
 load_dotenv()
 
-router = APIRouter(tags=['activities'], dependencies=[Depends(get_api_key)])
+router = APIRouter(tags=['v1-activities'], dependencies=[Depends(get_api_key)])
 
 # Load environment
 SEPOLIA_RPC_URL = os.getenv("SEPOLIA_RPC_URL")
@@ -49,13 +49,13 @@ def submit_activity(activity: ActivitySubmission):
     try:
         kwh = int(activity.value)
 
-        print(f"[Submit] Wallet: {activity.wallet_address}")
-        print(f"[Submit] Activity Type: {activity.activity_type}")
-        print(f"[Submit] kWh Submitted: {kwh}")
-        print(f"[Submit] Details: {activity.details}")
+        print(f"[V1 Submit] Wallet: {activity.wallet_address}")
+        print(f"[V1 Submit] Activity Type: {activity.activity_type}")
+        print(f"[V1 Submit] kWh Submitted: {kwh}")
+        print(f"[V1 Submit] Details: {activity.details}")
 
         nonce = w3.eth.get_transaction_count(sender_address, 'pending')
-        print(f"[Submit] Nonce (pending): {nonce}")
+        print(f"[V1 Submit] Nonce (pending): {nonce}")
 
         txn = contract.functions.reward(activity.wallet_address, kwh).build_transaction({
             'from': sender_address,
@@ -72,16 +72,16 @@ def submit_activity(activity: ActivitySubmission):
             raise Exception("SignedTransaction has no raw transaction field")
 
         tx_hash = w3.eth.send_raw_transaction(raw_tx)
-        print(f"[Submit] Submitted tx hash: {tx_hash.hex()}")
+        print(f"[V1 Submit] Submitted tx hash: {tx_hash.hex()}")
 
         try:
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
-            print(f"[Submit] Mined in block: {receipt.blockNumber}")
+            print(f"[V1 Submit] Mined in block: {receipt.blockNumber}")
             return {"txHash": tx_hash.hex(), "status": "confirmed"}
         except Exception as e:
-            print(f"[Submit] Tx not confirmed within timeout: {e}")
+            print(f"[V1 Submit] Tx not confirmed within timeout: {e}")
             return {"txHash": tx_hash.hex(), "status": "pending"}
 
     except Exception as e:
-        print(f"[Submit] Error: {str(e)}")
+        print(f"[V1 Submit] Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
