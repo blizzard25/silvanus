@@ -7,11 +7,14 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   const token = await ethers.getContractAt("Silvanus", tokenAddress);
   
-  const tx = await token.transfer(distributorAddress, ethers.parseEther("100"));
+  const tx = await token.transfer(distributorAddress, ethers.parseEther("4000000"));
 
   await tx.wait();
 
-  console.log(`✅ Sent tokens to distributor: ${distributorAddress}`);
+  console.log(`Sent tokens to distributor: ${distributorAddress}`);
+  const newBalance = await token.balanceOf(distributorAddress);
+  console.log(`Distributor now holds: ${ethers.formatEther(newBalance)} SVN`);
+
 }
 
 main().catch((error) => {
