@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, validator, Field
 from api.auth import get_api_key_with_tier, APIKeyTier
-from api.main import limiter, get_rate_limit_for_request
+from api.rate_limiting import limiter, get_rate_limit_for_request
 from web3 import Web3
 from dotenv import load_dotenv
 import os
