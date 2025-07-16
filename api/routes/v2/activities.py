@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, validator, Field
-from api.auth import get_api_key_with_tier, APIKeyTier
-from api.rate_limiting import limiter, get_rate_limit_for_request
+from api.auth import get_api_key
+from api.rate_limiting import limiter
 from web3 import Web3
 from dotenv import load_dotenv
 import os
@@ -92,27 +92,20 @@ class RewardResponse(BaseModel):
     status: str
 
 @router.post("/submit", response_model=RewardResponse)
-@limiter.limit(lambda request: get_rate_limit_for_request(request))
+@limiter.limit("1000/hour")
 async def submit_activity(
     request: Request,
     activity: ActivitySubmission,
-    auth_info: dict = Depends(get_api_key_with_tier)
+    api_key: str = Depends(get_api_key)
 ):
     
     try:
-        print(f"[V2 Submit] API Tier: {auth_info['tier'].value}")
         print(f"[V2 Submit] Wallet: {activity.wallet_address}")
         print(f"[V2 Submit] Activity Type: {activity.activity_type}")
         print(f"[V2 Submit] Value: {activity.value} kWh")
         print(f"[V2 Submit] Details: {activity.details}")
 
         kwh_scaled = int(activity.value * 100)
-        
-        if auth_info['tier'] == APIKeyTier.BASIC and activity.value > 100:
-            raise HTTPException(
-                status_code=403, 
-                detail="Basic tier limited to 100 kWh per submission"
-            )
         
         nonce = w3.eth.get_transaction_count(sender_address, 'pending')
         print(f"[V2 Submit] Nonce (pending): {nonce}")
