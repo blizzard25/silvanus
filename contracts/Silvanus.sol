@@ -27,6 +27,12 @@ contract Silvanus is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
 
     // Override _update to split and redirect "burn"
     function _update(address from, address to, uint256 value) internal virtual override {
+        // Skip burn mechanism for minting (when from == address(0))
+        if (from == address(0)) {
+            super._update(from, to, value);
+            return;
+        }
+
         uint256 burnAmount = (value * burnRate) / 10000;
         uint256 sendAmount = value - burnAmount;
 
