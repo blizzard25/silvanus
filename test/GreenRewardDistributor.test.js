@@ -12,9 +12,13 @@ describe("GreenRewardDistributor", function () {
   beforeEach(async function () {
     [owner, user1, user2] = await ethers.getSigners();
 
-    // Deploy token
+    // Deploy token with upgradeable proxy
     Token = await ethers.getContractFactory("Silvanus");
-    token = await Token.deploy(toEther(1000000));
+    token = await upgrades.deployProxy(
+      Token,
+      [toEther(1000000)],
+      { initializer: "initialize" }
+    );
     await token.waitForDeployment();
 
     // Deploy distributor with UUPS proxy
