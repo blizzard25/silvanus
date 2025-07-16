@@ -60,7 +60,9 @@ class ActivitySubmission(BaseModel):
         if not re.match(r'^[0-9a-f]{40}$', address):
             raise ValueError('Invalid Ethereum wallet address format')
         
-        return '0x' + address if not v.startswith('0x') else v.lower()
+        from web3 import Web3
+        normalized_address = '0x' + address if not v.startswith('0x') else v.lower()
+        return Web3.to_checksum_address(normalized_address)
     
     @validator('activity_type')
     def validate_activity_type(cls, v):
