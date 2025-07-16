@@ -92,13 +92,12 @@ class RewardResponse(BaseModel):
     status: str
 
 @router.post("/submit", response_model=RewardResponse)
+@limiter.limit(lambda request: get_rate_limit_for_request(request))
 async def submit_activity(
     request: Request,
     activity: ActivitySubmission,
     auth_info: dict = Depends(get_api_key_with_tier)
 ):
-    rate_limit = get_rate_limit_for_request(request)
-    await limiter.limit(rate_limit)(request)
     
     try:
         print(f"[V2 Submit] API Tier: {auth_info['tier'].value}")
