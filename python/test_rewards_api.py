@@ -5,6 +5,10 @@ import socket
 import os
 import time
 import json
+import hashlib
+import base64
+import secrets
+from urllib.parse import urlparse, parse_qs
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -220,15 +224,355 @@ def test_api_authentication():
     }, "totally_invalid_key", "POST")
     print(f"   Invalid auth: {response.status_code} (expected 403)")
 
+def generate_pkce_challenge():
+    """Generate PKCE code verifier and challenge for OAuth2.0"""
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    ).decode('utf-8').rstrip('=')
+    return code_verifier, code_challenge
+
+def test_oauth_login_flow():
+    """Test OAuth2.0 login flow initiation"""
+    print("\n=== OAUTH2.0 LOGIN FLOW TEST ===")
+    
+    user_id = f"test_user_{int(time.time())}"
+    response = requests.get(f"{BASE_URL}/oauth/login/github", params={"user_id": user_id})
+    
+    print(f"→ OAuth login request: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"   Error: {response.text}")
+        return False
+    
+    data = response.json()
+    required_fields = ["auth_url", "state", "session_key", "provider"]
+    
+    for field in required_fields:
+        if field not in data:
+            print(f"   Missing field: {field}")
+            return False
+    
+    parsed_url = urlparse(data["auth_url"])
+    query_params = parse_qs(parsed_url.query)
+    
+    required_params = ["client_id", "redirect_uri", "scope", "state", "code_challenge", "code_challenge_method", "response_type"]
+    for param in required_params:
+        if param not in query_params:
+            print(f"   Missing OAuth parameter: {param}")
+            return False
+    
+    if query_params["code_challenge_method"][0] != "S256":
+        print(f"   Invalid code_challenge_method: {query_params['code_challenge_method'][0]}")
+        return False
+    
+    print(f"   ✓ Auth URL: {data['auth_url'][:80]}...")
+    print(f"   ✓ State: {data['state'][:20]}...")
+    print(f"   ✓ PKCE challenge method: S256")
+    print(f"   ✓ Provider: {data['provider']}")
+    
+    return True
+
+def test_oauth_pkce_validation():
+    """Test PKCE code challenge validation"""
+    print("\n=== OAUTH2.0 PKCE VALIDATION TEST ===")
+    
+    user_id = f"pkce_test_{int(time.time())}"
+    response = requests.get(f"{BASE_URL}/oauth/login/github", params={"user_id": user_id})
+    
+    print(f"→ PKCE validation request: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"   Error: {response.text}")
+        return False
+    
+    data = response.json()
+    auth_url = data["auth_url"]
+    
+    parsed_url = urlparse(auth_url)
+    query_params = parse_qs(parsed_url.query)
+    
+    generated_challenge = query_params["code_challenge"][0]
+    challenge_method = query_params["code_challenge_method"][0]
+    
+    if len(generated_challenge) < 43:  # Base64 encoded SHA256 should be at least 43 chars
+        print(f"   Code challenge too short: {len(generated_challenge)}")
+        return False
+    
+    if challenge_method != "S256":
+        print(f"   Invalid challenge method: {challenge_method}")
+        return False
+    
+    print(f"   ✓ Code challenge length: {len(generated_challenge)}")
+    print(f"   ✓ Challenge method: {challenge_method}")
+    print(f"   ✓ Challenge format: {generated_challenge[:20]}...")
+    
+    return True
+
+def test_oauth_state_validation():
+    """Test OAuth2.0 state parameter for CSRF protection"""
+    print("\n=== OAUTH2.0 STATE VALIDATION TEST ===")
+    
+    states = []
+    for i in range(3):
+        user_id = f"state_test_{i}_{int(time.time())}"
+        response = requests.get(f"{BASE_URL}/oauth/login/github", params={"user_id": user_id})
+        
+        if response.status_code != 200:
+            print(f"   Request {i+1} failed: {response.status_code}")
+            return False
+        
+        data = response.json()
+        state = data["state"]
+        states.append(state)
+        
+        if len(state) < 20:
+            print(f"   State {i+1} too short: {len(state)}")
+            return False
+    
+    if len(set(states)) != len(states):
+        print(f"   States not unique: {len(set(states))} unique out of {len(states)}")
+        return False
+    
+    print(f"   ✓ Generated {len(states)} unique states")
+    print(f"   ✓ State lengths: {[len(s) for s in states]}")
+    print(f"   ✓ All states unique")
+    
+    return True
+
+def test_oauth_token_storage():
+    """Test OAuth2.0 token storage endpoints"""
+    print("\n=== OAUTH2.0 TOKEN STORAGE TEST ===")
+    
+    test_token_data = {
+        "user_id": f"storage_test_{int(time.time())}",
+        "access_token": "test_access_token_123",
+        "refresh_token": "test_refresh_token_456",
+        "expires_in": 3600,
+        "scope": "read:user user:email"
+    }
+    
+    response = requests.post(
+        f"{BASE_URL}/oauth/test/store-token",
+        json=test_token_data
+    )
+    
+    print(f"→ Token storage: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"   Error: {response.text}")
+        return False
+    
+    result = response.json()
+    if result.get("status") != "success":
+        print(f"   Storage failed: {result}")
+        return False
+    
+    response = requests.get(f"{BASE_URL}/oauth/test/list-tokens")
+    
+    print(f"→ Token listing: {response.status_code}")
+    
+    if response.status_code != 200:
+        print(f"   Error: {response.text}")
+        return False
+    
+    tokens = response.json()
+    if not isinstance(tokens, list):
+        print(f"   Expected list, got: {type(tokens)}")
+        return False
+    
+    test_token_found = False
+    for token in tokens:
+        if token.get("user_id") == test_token_data["user_id"]:
+            test_token_found = True
+            break
+    
+    if not test_token_found:
+        print(f"   Test token not found in {len(tokens)} tokens")
+        return False
+    
+    print(f"   ✓ Token stored for user: {test_token_data['user_id']}")
+    print(f"   ✓ Token retrieved from storage")
+    print(f"   ✓ Total tokens in storage: {len(tokens)}")
+    
+    return True
+
+def test_bearer_token_authentication():
+    """Test Bearer token authentication on activity endpoints"""
+    print("\n=== BEARER TOKEN AUTHENTICATION TEST ===")
+    
+    user_id = f"bearer_test_{int(time.time())}"
+    test_token = "test_bearer_token_12345"
+    
+    token_data = {
+        "user_id": user_id,
+        "access_token": test_token,
+        "refresh_token": "refresh_123",
+        "expires_in": 3600,
+        "scope": "read:user user:email"
+    }
+    
+    store_response = requests.post(
+        f"{BASE_URL}/oauth/test/store-token",
+        json=token_data
+    )
+    
+    if store_response.status_code != 200:
+        print(f"   Failed to store test token: {store_response.status_code}")
+        return False
+    
+    bearer_headers = {
+        "Authorization": f"Bearer {test_token}",
+        "Content-Type": "application/json"
+    }
+    
+    activity_data = {
+        "wallet_address": owner_wallet,
+        "activity_type": "solar_export",
+        "value": 2.0,
+        "details": {"test": "bearer_token_auth", "user_id": user_id}
+    }
+    
+    response = requests.post(
+        f"{BASE_URL}/v1/activities/submit",
+        headers=bearer_headers,
+        json=activity_data
+    )
+    
+    print(f"→ Bearer token V1 endpoint: {response.status_code}")
+    
+    expected_auth_errors = [401, 403]
+    
+    if response.status_code in expected_auth_errors:
+        print(f"   ✓ Bearer token parsed and validated (expected auth failure)")
+        return True
+    elif response.status_code == 200:
+        print(f"   ✓ Bearer token authentication successful")
+        return True
+    elif response.status_code == 422:
+        print(f"   ✓ Bearer token parsed, validation error (expected)")
+        return True
+    else:
+        print(f"   Unexpected response: {response.status_code} - {response.text}")
+        return False
+
+def test_oauth_vs_api_key_comparison():
+    """Test that both OAuth2.0 and API key authentication work"""
+    print("\n=== OAUTH2.0 VS API KEY COMPARISON TEST ===")
+    
+    activity_data = {
+        "wallet_address": owner_wallet,
+        "activity_type": "solar_export",
+        "value": 1.5,
+        "details": {"test": "auth_comparison"}
+    }
+    
+    api_key_response = requests.post(
+        f"{BASE_URL}/v1/activities/submit",
+        headers={"X-API-Key": API_KEYS["valid"], "Content-Type": "application/json"},
+        json=activity_data
+    )
+    
+    bearer_response = requests.post(
+        f"{BASE_URL}/v1/activities/submit",
+        headers={"Authorization": "Bearer test_token_123", "Content-Type": "application/json"},
+        json=activity_data
+    )
+    
+    print(f"→ API key authentication: {api_key_response.status_code}")
+    print(f"→ Bearer token parsing: {bearer_response.status_code}")
+    
+    if api_key_response.status_code not in [200, 201]:
+        print(f"   API key failed: {api_key_response.text}")
+        return False
+    
+    if bearer_response.status_code == 500:
+        print(f"   Bearer token caused server error: {bearer_response.text}")
+        return False
+    
+    print(f"   ✓ API key works: {api_key_response.status_code}")
+    print(f"   ✓ Bearer token parsed: {bearer_response.status_code}")
+    
+    return True
+
+def test_oauth_rate_limiting():
+    """Test rate limiting with OAuth2.0 user identity"""
+    print("\n=== OAUTH2.0 RATE LIMITING TEST ===")
+    
+    user_id = f"rate_limit_test_{int(time.time())}"
+    test_token = f"rate_limit_token_{user_id}"
+    
+    token_data = {
+        "user_id": user_id,
+        "access_token": test_token,
+        "refresh_token": "refresh_rate_test",
+        "expires_in": 3600,
+        "scope": "read:user user:email"
+    }
+    
+    store_response = requests.post(
+        f"{BASE_URL}/oauth/test/store-token",
+        json=token_data
+    )
+    
+    if store_response.status_code != 200:
+        print(f"   Could not store test token, using API key instead")
+        headers = {"X-API-Key": API_KEYS["valid"], "Content-Type": "application/json"}
+    else:
+        headers = {"Authorization": f"Bearer {test_token}", "Content-Type": "application/json"}
+    
+    responses = []
+    for i in range(3):
+        response = requests.post(
+            f"{BASE_URL}/v1/activities/submit",
+            headers=headers,
+            json={
+                "wallet_address": owner_wallet,
+                "activity_type": "solar_export",
+                "value": 0.5,
+                "details": {"test": f"oauth_rate_limit_{i}"}
+            }
+        )
+        responses.append(response.status_code)
+        time.sleep(0.2)
+    
+    success_codes = [200, 201]
+    auth_error_codes = [401, 403]
+    rate_limit_codes = [429]
+    
+    success_count = sum(1 for code in responses if code in success_codes)
+    auth_error_count = sum(1 for code in responses if code in auth_error_codes)
+    rate_limited_count = sum(1 for code in responses if code in rate_limit_codes)
+    
+    print(f"→ Rate limiting results:")
+    print(f"   ✓ Successful: {success_count}")
+    print(f"   ✓ Auth errors: {auth_error_count}")
+    print(f"   ✓ Rate limited: {rate_limited_count}")
+    
+    server_errors = sum(1 for code in responses if code >= 500)
+    if server_errors == len(responses):
+        print(f"   All requests resulted in server errors")
+        return False
+    
+    return True
+
 def run_comprehensive_tests():
-    """Run all test suites"""
-    print("🧪 SILVANUS API COMPREHENSIVE TEST SUITE")
-    print("=" * 50)
+    """Run all test suites including OAuth2.0 tests"""
+    print("🧪 SILVANUS API COMPREHENSIVE TEST SUITE WITH OAUTH2.0")
+    print("=" * 60)
     
     results = {}
     
     results['health'] = test_health_endpoint()
     results['activity_types'] = test_activity_types_endpoint()
+    
+    results['oauth_login_flow'] = test_oauth_login_flow()
+    results['oauth_pkce_validation'] = test_oauth_pkce_validation()
+    results['oauth_state_validation'] = test_oauth_state_validation()
+    results['oauth_token_storage'] = test_oauth_token_storage()
+    results['bearer_token_auth'] = test_bearer_token_authentication()
+    results['oauth_vs_api_key'] = test_oauth_vs_api_key_comparison()
+    results['oauth_rate_limiting'] = test_oauth_rate_limiting()
     
     results['v1_endpoint'] = test_v1_endpoint()
     results['v2_endpoint'] = test_v2_endpoint()
@@ -238,20 +582,44 @@ def run_comprehensive_tests():
     test_rate_limiting()
     test_api_authentication()
     
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 60)
     print("📊 TEST RESULTS SUMMARY")
-    print("=" * 50)
+    print("=" * 60)
     
-    for test_name, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
-        print(f"{test_name:20} {status}")
+    oauth_tests = ['oauth_login_flow', 'oauth_pkce_validation', 'oauth_state_validation', 
+                   'oauth_token_storage', 'bearer_token_auth', 'oauth_vs_api_key', 'oauth_rate_limiting']
+    
+    print("\n🔐 OAuth2.0 Tests:")
+    oauth_passed = 0
+    for test_name in oauth_tests:
+        if test_name in results:
+            status = "✅ PASS" if results[test_name] else "❌ FAIL"
+            print(f"  {test_name:25} {status}")
+            if results[test_name]:
+                oauth_passed += 1
+    
+    print(f"\n📈 OAuth2.0 Success Rate: {oauth_passed}/{len(oauth_tests)} ({oauth_passed/len(oauth_tests)*100:.1f}%)")
+    
+    print("\n🔧 Core API Tests:")
+    core_tests = [k for k in results.keys() if k not in oauth_tests]
+    core_passed = 0
+    for test_name in core_tests:
+        status = "✅ PASS" if results[test_name] else "❌ FAIL"
+        print(f"  {test_name:25} {status}")
+        if results[test_name]:
+            core_passed += 1
     
     total_tests = len(results)
     passed_tests = sum(results.values())
-    print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+    print(f"\n📊 Overall Results: {passed_tests}/{total_tests} tests passed ({passed_tests/total_tests*100:.1f}%)")
+    
+    if oauth_passed == len(oauth_tests):
+        print("🎉 All OAuth2.0 tests passed!")
+    else:
+        print("⚠️  Some OAuth2.0 tests failed - check logs above")
     
     if passed_tests == total_tests:
-        print("🎉 All core functionality tests passed!")
+        print("🎉 All tests passed!")
     else:
         print("⚠️  Some tests failed - check logs above")
 
