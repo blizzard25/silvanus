@@ -12,9 +12,7 @@ load_dotenv()
 BASE_URL = "https://silvanus-a4nt.onrender.com"
 
 API_KEYS = {
-    "basic": "12062569evan1206",  # Basic tier (1000/hour)
-    "premium": "premium_key_test",  # Premium tier (5000/hour) - placeholder
-    "admin": "admin_key_test",  # Admin tier (10000/hour) - placeholder
+    "valid": "12062569evan1206",  # Valid API key (1000/hour fixed rate limit)
     "invalid": "invalid_key_123"  # Invalid key for testing
 }
 
@@ -45,7 +43,7 @@ def test_health_endpoint():
 def test_activity_types_endpoint():
     """Test activity types endpoint"""
     print("\n=== ACTIVITY TYPES TEST ===")
-    response = make_request("/activities/types", api_key=API_KEYS["basic"])
+    response = make_request("/activities/types", api_key=API_KEYS["valid"])
     print(f"→ Activity Types: {response.status_code}")
     if response.status_code == 200:
         try:
@@ -71,7 +69,7 @@ def test_v1_endpoint():
         }
     }
     
-    response = make_request("/v1/activities/submit", activity_payload, API_KEYS["basic"], "POST")
+    response = make_request("/v1/activities/submit", activity_payload, API_KEYS["valid"], "POST")
     print(f"→ V1 Submit Activity: {response.status_code}")
     if response.status_code != 200:
         print(f"   Error: {response.text}")
@@ -101,7 +99,7 @@ def test_v2_endpoint():
         }
     }
     
-    response = make_request("/v2/activities/submit", activity_payload, API_KEYS["basic"], "POST")
+    response = make_request("/v2/activities/submit", activity_payload, API_KEYS["valid"], "POST")
     print(f"→ V2 Submit Activity: {response.status_code}")
     if response.status_code != 200:
         print(f"   Error: {response.text}")
@@ -130,7 +128,7 @@ def test_legacy_endpoint():
         }
     }
     
-    response = make_request("/activities/submit", activity_payload, API_KEYS["basic"], "POST")
+    response = make_request("/activities/submit", activity_payload, API_KEYS["valid"], "POST")
     print(f"→ Legacy Submit Activity: {response.status_code}")
     if response.status_code != 200:
         print(f"   Error: {response.text}")
@@ -153,7 +151,7 @@ def test_input_validation():
         "activity_type": "solar_export",
         "value": 5.0
     }
-    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["basic"], "POST")
+    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["valid"], "POST")
     print(f"   Invalid wallet: {response.status_code} (expected 422)")
     
     print("→ Testing invalid activity type...")
@@ -162,7 +160,7 @@ def test_input_validation():
         "activity_type": "invalid_activity",
         "value": 5.0
     }
-    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["basic"], "POST")
+    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["valid"], "POST")
     print(f"   Invalid activity type: {response.status_code} (expected 422)")
     
     print("→ Testing value out of range...")
@@ -171,11 +169,11 @@ def test_input_validation():
         "activity_type": "solar_export",
         "value": 15000.0  # Exceeds 10000 limit
     }
-    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["basic"], "POST")
+    response = make_request("/v2/activities/submit", invalid_payload, API_KEYS["valid"], "POST")
     print(f"   Value too high: {response.status_code} (expected 422)")
 
 def test_rate_limiting():
-    """Test rate limiting with different API key tiers"""
+    """Test rate limiting and authentication"""
     print("\n=== RATE LIMITING TESTS ===")
     
     print("→ Testing no API key rate limit...")
@@ -194,13 +192,13 @@ def test_rate_limiting():
     }, API_KEYS["invalid"], "POST")
     print(f"   Invalid API key: {response.status_code}")
     
-    print("→ Testing basic tier value limit...")
+    print("→ Testing valid API key with normal value...")
     response = make_request("/v2/activities/submit", {
         "wallet_address": owner_wallet,
         "activity_type": "solar_export",
-        "value": 150.0  # Exceeds basic tier 100 kWh limit
-    }, API_KEYS["basic"], "POST")
-    print(f"   Basic tier large value: {response.status_code} (expected 403)")
+        "value": 150.0  # Normal value within 10000 limit
+    }, API_KEYS["valid"], "POST")
+    print(f"   Valid API key normal value: {response.status_code} (expected 200)")
 
 def test_api_authentication():
     """Test API authentication scenarios"""
