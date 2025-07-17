@@ -1,9 +1,9 @@
 # api/routes/activity_types.py
 from fastapi import APIRouter, Depends
-from api.auth import get_api_key
+from api.auth import get_current_user
 from typing import List
 
-router = APIRouter(tags=['activity-types'], dependencies=[Depends(get_api_key)])
+router = APIRouter(tags=['activity-types'], dependencies=[Depends(get_current_user)])
 
 @router.get("/activities/types", response_model=List[dict])
 def get_activity_types():

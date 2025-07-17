@@ -7,6 +7,7 @@ from api.database import engine, Base
 from api.models import tokens
 from api.rate_limiting import limiter
 from api.security_middleware import SecurityMiddleware
+from api.auth_middleware import AuthContextMiddleware
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
@@ -15,6 +16,7 @@ from slowapi.errors import RateLimitExceeded
 app = FastAPI(title="Silvanus API")
 
 app.add_middleware(SecurityMiddleware, max_request_size=1024 * 1024)
+app.add_middleware(AuthContextMiddleware)
 
 # Register limiter and middleware
 app.state.limiter = limiter
