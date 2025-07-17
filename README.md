@@ -285,4 +285,4 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for a sustainable future** 🌍
+**Built for a sustainable future** 🌍

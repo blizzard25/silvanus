@@ -596,6 +596,4 @@ We welcome feature requests and contributions! Please:
 
 ---
 
-**Built with ❤️ for a sustainable future** 🌍
-
-*Last updated: July 17, 2025*
+**Built for a sustainable future** 🌍
