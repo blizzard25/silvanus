@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel
 from api.auth import get_api_key
 from api.rate_limiting import limiter
+from api.validation import BaseActivitySubmission, validate_activity_before_blockchain
+from api.security_logging import log_validation_attempt, log_blockchain_transaction
 from web3 import Web3
 from dotenv import load_dotenv
 import os
-import re
 from typing import Dict, Any
 
 load_dotenv()
@@ -37,57 +38,8 @@ reward_distributor_abi = [
 
 contract = w3.eth.contract(address=REWARD_CONTRACT, abi=reward_distributor_abi)
 
-VALID_ACTIVITY_TYPES = {
-    "solar_export", "ev_charging", "energy_saving", "carbon_offset", 
-    "renewable_energy", "green_transport", "waste_reduction"
-}
-
-class ActivitySubmission(BaseModel):
-    wallet_address: str = Field(..., description="Ethereum wallet address")
-    activity_type: str = Field(..., description="Type of green activity")
-    value: float = Field(..., ge=0.0, le=10000.0, description="Activity value in kWh (0-10000)")
-    details: Dict[str, Any] = Field(default_factory=dict, description="Additional activity details")
-    
-    @validator('wallet_address')
-    def validate_wallet_address(cls, v):
-        if not v:
-            raise ValueError('Wallet address is required')
-        
-        address = v.lower()
-        if address.startswith('0x'):
-            address = address[2:]
-        
-        if not re.match(r'^[0-9a-f]{40}$', address):
-            raise ValueError('Invalid Ethereum wallet address format')
-        
-        from web3 import Web3
-        normalized_address = '0x' + address if not v.startswith('0x') else v.lower()
-        return Web3.to_checksum_address(normalized_address)
-    
-    @validator('activity_type')
-    def validate_activity_type(cls, v):
-        if v not in VALID_ACTIVITY_TYPES:
-            raise ValueError(f'Invalid activity type. Must be one of: {", ".join(VALID_ACTIVITY_TYPES)}')
-        return v
-    
-    @validator('value')
-    def validate_value(cls, v):
-        if v < 0:
-            raise ValueError('Activity value must be non-negative')
-        if v > 10000:
-            raise ValueError('Activity value cannot exceed 10000 kWh')
-        
-        return round(float(v), 2)
-    
-    @validator('details')
-    def validate_details(cls, v):
-        if not isinstance(v, dict):
-            raise ValueError('Details must be a dictionary')
-        
-        if len(str(v)) > 1000:
-            raise ValueError('Details field is too large (max 1000 characters)')
-        
-        return v
+class ActivitySubmission(BaseActivitySubmission):
+    pass
 
 class RewardResponse(BaseModel):
     txHash: str
@@ -102,6 +54,9 @@ async def submit_activity(
 ):
     
     try:
+        validate_activity_before_blockchain(activity, "V2 Submit")
+        log_validation_attempt("v2", activity.wallet_address, activity.value, True, activity.details)
+        
         print(f"[V2 Submit] Wallet: {activity.wallet_address}")
         print(f"[V2 Submit] Activity Type: {activity.activity_type}")
         print(f"[V2 Submit] Value: {activity.value} kWh")
@@ -128,6 +83,7 @@ async def submit_activity(
 
         tx_hash = w3.eth.send_raw_transaction(raw_tx)
         print(f"[V2 Submit] Submitted tx hash: {tx_hash.hex()}")
+        log_blockchain_transaction("v2", activity.wallet_address, activity.value, tx_hash.hex(), True)
 
         try:
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
@@ -138,10 +94,13 @@ async def submit_activity(
             return {"txHash": tx_hash.hex(), "status": "pending"}
 
     except HTTPException:
+        log_validation_attempt("v2", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), False)
         raise
     except ValueError as e:
         print(f"[V2 Submit] Validation Error: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+        log_validation_attempt("v2", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), False)
+        raise HTTPException(status_code=422, detail=f"Validation error: {str(e)}")
     except Exception as e:
         print(f"[V2 Submit] Error: {str(e)}")
+        log_blockchain_transaction("v2", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), "failed", False)
         raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
