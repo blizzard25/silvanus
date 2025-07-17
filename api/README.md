@@ -12,17 +12,214 @@ The Silvanus API enables users to submit green energy activity data and receive 
 
 ## 🔐 Authentication
 
-All API requests require authentication via API key:
+The Silvanus API supports two authentication methods:
+
+### API Key Authentication (Traditional)
 
 ```http
 Header: X-API-Key: YOUR_API_KEY
 ```
 
+### OAuth2.0 Authentication (Recommended)
+
+```http
+Header: Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
 **Security Features:**
-- API key validation on all protected endpoints
-- Rate limiting per API key (1000 requests/hour)
+- Dual authentication support (API keys + OAuth2.0)
+- PKCE (Proof Key for Code Exchange) for secure authorization
+- State parameter validation for CSRF protection
+- JWT-based access tokens with expiration
+- Token refresh capabilities
+- Rate limiting per user identity (1000 requests/hour)
 - Request size limits (1MB maximum)
 - Comprehensive security logging
+
+---
+
+## 🔑 OAuth2.0 Flow
+
+### Step 1: Initiate OAuth Login
+
+#### `GET /oauth/login/github?user_id={user_id}`
+
+Start the OAuth2.0 authorization flow with GitHub.
+
+**Parameters:**
+- `user_id` (required): Unique identifier for the user session
+
+**Response:**
+```json
+{
+  "auth_url": "https://github.com/login/oauth/authorize?client_id=...&code_challenge=...&state=...",
+  "state": "PlB5gZGHoTfpqwbdFfu80R_EZF9H_YeXZut-WjWpJzk",
+  "session_key": "user123",
+  "provider": "github"
+}
+```
+
+**Usage:**
+1. Redirect user to the `auth_url`
+2. Store the `state` parameter for validation
+3. User completes GitHub authorization
+
+### Step 2: Handle OAuth Callback
+
+#### `GET /oauth/callback/github?code={code}&state={state}`
+
+Exchange authorization code for access token.
+
+**Parameters:**
+- `code` (required): Authorization code from GitHub
+- `state` (required): State parameter for CSRF validation
+
+**Response (Success):**
+```json
+{
+  "access_token": "gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "refresh_token": "ghr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "wallet_address": "0x..."
+}
+```
+
+**Response (Error):**
+```json
+{
+  "error": "invalid_grant",
+  "error_description": "The provided authorization grant is invalid"
+}
+```
+
+### Step 3: Use Access Token
+
+Include the access token in API requests:
+
+```http
+Authorization: Bearer gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### OAuth2.0 Test Endpoints
+
+For development and testing purposes:
+
+#### `POST /oauth/test/store-token`
+Store a test OAuth token for development.
+
+#### `GET /oauth/test/list-tokens`
+List all stored OAuth tokens (development only).
+
+### Token Management
+
+- **Access Token Lifetime**: 1 hour (3600 seconds)
+- **Refresh Token**: Available for token renewal
+- **Token Storage**: Secure database storage with expiration tracking
+- **Token Validation**: Automatic expiration checking on each request
+
+### Client Implementation Examples
+
+#### Python Client
+
+```python
+import requests
+import json
+
+class SilvanusOAuthClient:
+    def __init__(self, base_url="https://silvanus-a4nt.onrender.com"):
+        self.base_url = base_url
+        self.access_token = None
+    
+    def initiate_login(self, user_id):
+        """Step 1: Get OAuth authorization URL"""
+        response = requests.get(f"{self.base_url}/oauth/login/github", 
+                              params={"user_id": user_id})
+        return response.json()
+    
+    def exchange_code(self, code, state):
+        """Step 2: Exchange authorization code for access token"""
+        response = requests.get(f"{self.base_url}/oauth/callback/github",
+                              params={"code": code, "state": state})
+        if response.status_code == 200:
+            token_data = response.json()
+            self.access_token = token_data["access_token"]
+            return token_data
+        return response.json()
+    
+    def submit_activity(self, wallet_address, activity_type, value):
+        """Submit activity using OAuth2.0 bearer token"""
+        headers = {"Authorization": f"Bearer {self.access_token}"}
+        data = {
+            "wallet_address": wallet_address,
+            "activity_type": activity_type,
+            "value": value
+        }
+        response = requests.post(f"{self.base_url}/v2/activities/submit",
+                               json=data, headers=headers)
+        return response.json()
+
+# Usage
+client = SilvanusOAuthClient()
+auth_data = client.initiate_login("user123")
+print(f"Visit: {auth_data['auth_url']}")
+# After user authorization, exchange code for token
+# token_data = client.exchange_code(code, state)
+# result = client.submit_activity("0x...", "solar_export", 5.0)
+```
+
+#### JavaScript Client
+
+```javascript
+class SilvanusOAuthClient {
+    constructor(baseUrl = "https://silvanus-a4nt.onrender.com") {
+        this.baseUrl = baseUrl;
+        this.accessToken = null;
+    }
+    
+    async initiateLogin(userId) {
+        // Step 1: Get OAuth authorization URL
+        const response = await fetch(`${this.baseUrl}/oauth/login/github?user_id=${userId}`);
+        return await response.json();
+    }
+    
+    async exchangeCode(code, state) {
+        // Step 2: Exchange authorization code for access token
+        const response = await fetch(`${this.baseUrl}/oauth/callback/github?code=${code}&state=${state}`);
+        if (response.ok) {
+            const tokenData = await response.json();
+            this.accessToken = tokenData.access_token;
+            return tokenData;
+        }
+        return await response.json();
+    }
+    
+    async submitActivity(walletAddress, activityType, value) {
+        // Submit activity using OAuth2.0 bearer token
+        const response = await fetch(`${this.baseUrl}/v2/activities/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.accessToken}`
+            },
+            body: JSON.stringify({
+                wallet_address: walletAddress,
+                activity_type: activityType,
+                value: value
+            })
+        });
+        return await response.json();
+    }
+}
+
+// Usage
+const client = new SilvanusOAuthClient();
+const authData = await client.initiateLogin("user123");
+console.log(`Visit: ${authData.auth_url}`);
+// After user authorization, exchange code for token
+// const tokenData = await client.exchangeCode(code, state);
+// const result = await client.submitActivity("0x...", "solar_export", 5.0);
+```
 
 ---
 
