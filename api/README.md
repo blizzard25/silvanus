@@ -28,31 +28,52 @@ Header: Authorization: Bearer YOUR_ACCESS_TOKEN
 
 **Security Features:**
 - Dual authentication support (API keys + OAuth2.0)
-- PKCE (Proof Key for Code Exchange) for secure authorization
+- Provider-agnostic OAuth2.0 architecture with unified security model
+- PKCE (Proof Key for Code Exchange) for secure authorization across all providers
 - State parameter validation for CSRF protection
 - JWT-based access tokens with expiration
-- Token refresh capabilities
+- Token refresh capabilities for supported providers
 - Rate limiting per user identity (1000 requests/hour)
 - Request size limits (1MB maximum)
-- Comprehensive security logging
+- Comprehensive security logging and audit trail
 
 ---
 
 ## 🔑 OAuth2.0 Flow
 
+The Silvanus API implements a **provider-agnostic OAuth2.0 system** that supports multiple OAuth providers through a unified interface. The system uses an abstract provider architecture that allows easy integration of any OAuth2.0-compliant service.
+
+### Supported OAuth Providers
+
+| Provider | Purpose | Status |
+|----------|---------|--------|
+| **GitHub** | Internal testing and development | ✅ Active |
+| **SolarEdge** | Solar energy data integration | ✅ Active |
+| **Custom Providers** | Extensible architecture | 🔧 Configurable |
+
+### Generic OAuth2.0 Endpoints
+
+All OAuth providers use the same endpoint pattern:
+
+#### `GET /oauth/login/{provider}?user_id={user_id}`
+#### `GET /oauth/callback/{provider}?code={code}&state={state}`
+
+Where `{provider}` can be any registered OAuth provider (e.g., `github`, `solaredge`, etc.).
+
 ### Step 1: Initiate OAuth Login
 
-#### `GET /oauth/login/github?user_id={user_id}`
+#### `GET /oauth/login/{provider}?user_id={user_id}`
 
-Start the OAuth2.0 authorization flow with GitHub.
+Start the OAuth2.0 authorization flow with any supported provider.
 
 **Parameters:**
+- `provider` (required): OAuth provider name (`github`, `solaredge`, etc.)
 - `user_id` (required): Unique identifier for the user session
 
 **Response:**
 ```json
 {
-  "auth_url": "https://github.com/login/oauth/authorize?client_id=...&code_challenge=...&state=...",
+  "auth_url": "https://provider.com/oauth/authorize?client_id=...&code_challenge=...&state=...",
   "state": "PlB5gZGHoTfpqwbdFfu80R_EZF9H_YeXZut-WjWpJzk",
   "session_key": "user123",
   "provider": "github"
@@ -62,25 +83,26 @@ Start the OAuth2.0 authorization flow with GitHub.
 **Usage:**
 1. Redirect user to the `auth_url`
 2. Store the `state` parameter for validation
-3. User completes GitHub authorization
+3. User completes provider authorization
 
 ### Step 2: Handle OAuth Callback
 
-#### `GET /oauth/callback/github?code={code}&state={state}`
+#### `GET /oauth/callback/{provider}?code={code}&state={state}`
 
-Exchange authorization code for access token.
+Exchange authorization code for access token from any provider.
 
 **Parameters:**
-- `code` (required): Authorization code from GitHub
+- `provider` (required): OAuth provider name (must match login provider)
+- `code` (required): Authorization code from OAuth provider
 - `state` (required): State parameter for CSRF validation
 
 **Response (Success):**
 ```json
 {
-  "access_token": "gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "access_token": "provider_access_token_here",
   "token_type": "bearer",
   "expires_in": 3600,
-  "refresh_token": "ghr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "refresh_token": "provider_refresh_token_here",
   "wallet_address": "0x..."
 }
 ```
@@ -103,13 +125,31 @@ Authorization: Bearer gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ### OAuth2.0 Test Endpoints
 
-For development and testing purposes:
+For development and testing purposes (works with any provider):
 
 #### `POST /oauth/test/store-token`
 Store a test OAuth token for development.
 
 #### `GET /oauth/test/list-tokens`
 List all stored OAuth tokens (development only).
+
+### Provider Architecture
+
+The OAuth2.0 system uses an **abstract provider interface** that enables:
+
+- **Dynamic Provider Registration**: New OAuth providers can be registered at runtime
+- **Unified Security Model**: All providers implement the same security standards (PKCE, state validation)
+- **Consistent API**: Same endpoints and response formats across all providers
+- **Extensible Design**: Easy to add new OAuth providers without code changes to core authentication logic
+
+**Provider Registration Example:**
+```python
+from api.oauth.manager import register_provider
+from api.oauth.custom_provider import CustomOAuthProvider
+
+# Register a new OAuth provider
+register_provider("custom", CustomOAuthProvider())
+```
 
 ### Token Management
 
@@ -131,15 +171,15 @@ class SilvanusOAuthClient:
         self.base_url = base_url
         self.access_token = None
     
-    def initiate_login(self, user_id):
-        """Step 1: Get OAuth authorization URL"""
-        response = requests.get(f"{self.base_url}/oauth/login/github", 
+    def initiate_login(self, provider, user_id):
+        """Step 1: Get OAuth authorization URL for any provider"""
+        response = requests.get(f"{self.base_url}/oauth/login/{provider}", 
                               params={"user_id": user_id})
         return response.json()
     
-    def exchange_code(self, code, state):
+    def exchange_code(self, provider, code, state):
         """Step 2: Exchange authorization code for access token"""
-        response = requests.get(f"{self.base_url}/oauth/callback/github",
+        response = requests.get(f"{self.base_url}/oauth/callback/{provider}",
                               params={"code": code, "state": state})
         if response.status_code == 200:
             token_data = response.json()
@@ -159,12 +199,19 @@ class SilvanusOAuthClient:
                                json=data, headers=headers)
         return response.json()
 
-# Usage
+# Usage Examples
+
+# Example 1: GitHub OAuth (for internal testing)
 client = SilvanusOAuthClient()
-auth_data = client.initiate_login("user123")
+auth_data = client.initiate_login("github", "user123")
 print(f"Visit: {auth_data['auth_url']}")
-# After user authorization, exchange code for token
-# token_data = client.exchange_code(code, state)
+# token_data = client.exchange_code("github", code, state)
+
+# Example 2: SolarEdge OAuth (for production solar data)
+# auth_data = client.initiate_login("solaredge", "user123")
+# token_data = client.exchange_code("solaredge", code, state)
+
+# Step 4: Use token for API calls (same for all providers)
 # result = client.submit_activity("0x...", "solar_export", 5.0)
 ```
 
@@ -177,15 +224,15 @@ class SilvanusOAuthClient {
         this.accessToken = null;
     }
     
-    async initiateLogin(userId) {
-        // Step 1: Get OAuth authorization URL
-        const response = await fetch(`${this.baseUrl}/oauth/login/github?user_id=${userId}`);
+    async initiateLogin(provider, userId) {
+        // Step 1: Get OAuth authorization URL for any provider
+        const response = await fetch(`${this.baseUrl}/oauth/login/${provider}?user_id=${userId}`);
         return await response.json();
     }
     
-    async exchangeCode(code, state) {
+    async exchangeCode(provider, code, state) {
         // Step 2: Exchange authorization code for access token
-        const response = await fetch(`${this.baseUrl}/oauth/callback/github?code=${code}&state=${state}`);
+        const response = await fetch(`${this.baseUrl}/oauth/callback/${provider}?code=${code}&state=${state}`);
         if (response.ok) {
             const tokenData = await response.json();
             this.accessToken = tokenData.access_token;
@@ -212,12 +259,19 @@ class SilvanusOAuthClient {
     }
 }
 
-// Usage
+// Usage Examples
+
+// Example 1: GitHub OAuth (for internal testing)
 const client = new SilvanusOAuthClient();
-const authData = await client.initiateLogin("user123");
+const authData = await client.initiateLogin("github", "user123");
 console.log(`Visit: ${authData.auth_url}`);
-// After user authorization, exchange code for token
-// const tokenData = await client.exchangeCode(code, state);
+// const tokenData = await client.exchangeCode("github", code, state);
+
+// Example 2: SolarEdge OAuth (for production solar data)
+// const authData = await client.initiateLogin("solaredge", "user123");
+// const tokenData = await client.exchangeCode("solaredge", code, state);
+
+// Step 4: Use token for API calls (same for all providers)
 // const result = await client.submitActivity("0x...", "solar_export", 5.0);
 ```
 
