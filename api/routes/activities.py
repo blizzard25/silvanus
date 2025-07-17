@@ -2,8 +2,9 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from api.auth import get_api_key
 from api.rate_limiting import limiter
-from api.validation import BaseActivitySubmission, validate_activity_before_blockchain
+from api.validation import BaseActivitySubmission
 from api.security_logging import log_validation_attempt, log_blockchain_transaction
+from api.validation_decorator import validate_before_execution
 from web3 import Web3
 from dotenv import load_dotenv
 import os
@@ -46,6 +47,7 @@ class RewardResponse(BaseModel):
 
 @router.post("/submit", response_model=RewardResponse)
 @limiter.limit("1000/hour")
+@validate_before_execution
 async def submit_activity(
     request: Request,
     activity: ActivitySubmission, 
@@ -53,7 +55,6 @@ async def submit_activity(
 ):
     
     try:
-        validate_activity_before_blockchain(activity, "Legacy Submit")
         log_validation_attempt("legacy", activity.wallet_address, activity.value, True, activity.details)
         
         print(f"[Submit] Wallet: {activity.wallet_address}")
