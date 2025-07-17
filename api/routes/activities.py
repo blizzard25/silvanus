@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from api.auth import get_api_key
+from api.rate_limiting import limiter
+from api.validation import BaseActivitySubmission, validate_activity_before_blockchain
+from api.security_logging import log_validation_attempt, log_blockchain_transaction
 from web3 import Web3
 from dotenv import load_dotenv
 import os
@@ -34,25 +37,31 @@ reward_distributor_abi = [
 
 contract = w3.eth.contract(address=REWARD_CONTRACT, abi=reward_distributor_abi)
 
-class ActivitySubmission(BaseModel):
-    wallet_address: str
-    activity_type: str
-    value: float  # kWh
-    details: dict = {}
+class ActivitySubmission(BaseActivitySubmission):
+    pass
 
 class RewardResponse(BaseModel):
     txHash: str
     status: str
 
 @router.post("/submit", response_model=RewardResponse)
-def submit_activity(activity: ActivitySubmission):
+@limiter.limit("1000/hour")
+async def submit_activity(
+    request: Request,
+    activity: ActivitySubmission, 
+    api_key: str = Depends(get_api_key)
+):
+    
     try:
-        kwh = int(activity.value)
-
+        validate_activity_before_blockchain(activity, "Legacy Submit")
+        log_validation_attempt("legacy", activity.wallet_address, activity.value, True, activity.details)
+        
         print(f"[Submit] Wallet: {activity.wallet_address}")
         print(f"[Submit] Activity Type: {activity.activity_type}")
-        print(f"[Submit] kWh Submitted: {kwh}")
+        print(f"[Submit] kWh Submitted: {activity.value}")
         print(f"[Submit] Details: {activity.details}")
+
+        kwh = int(activity.value * 100)
 
         nonce = w3.eth.get_transaction_count(sender_address, 'pending')
         print(f"[Submit] Nonce (pending): {nonce}")
@@ -73,6 +82,7 @@ def submit_activity(activity: ActivitySubmission):
 
         tx_hash = w3.eth.send_raw_transaction(raw_tx)
         print(f"[Submit] Submitted tx hash: {tx_hash.hex()}")
+        log_blockchain_transaction("legacy", activity.wallet_address, activity.value, tx_hash.hex(), True)
 
         try:
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
@@ -82,6 +92,14 @@ def submit_activity(activity: ActivitySubmission):
             print(f"[Submit] Tx not confirmed within timeout: {e}")
             return {"txHash": tx_hash.hex(), "status": "pending"}
 
+    except HTTPException:
+        log_validation_attempt("legacy", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), False)
+        raise
+    except ValueError as e:
+        print(f"[Submit] Validation Error: {str(e)}")
+        log_validation_attempt("legacy", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), False)
+        raise HTTPException(status_code=422, detail=f"Validation error: {str(e)}")
     except Exception as e:
         print(f"[Submit] Error: {str(e)}")
+        log_blockchain_transaction("legacy", getattr(activity, 'wallet_address', 'unknown'), getattr(activity, 'value', 0), "failed", False)
         raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
