@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
-from api.auth import get_api_key
+from api.auth import get_current_user
 from api.rate_limiting import limiter
 from api.validation import BaseActivitySubmission
 from api.security_logging import log_validation_attempt, log_blockchain_transaction
@@ -52,7 +52,7 @@ class RewardResponse(BaseModel):
 async def submit_activity(
     request: Request,
     activity: ActivitySubmission,
-    api_key: str = Depends(get_api_key),
+    user: dict = Depends(get_current_user),
     guard=None
 ):
     

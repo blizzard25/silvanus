@@ -115,3 +115,7 @@ class GitHubOAuthProvider(OAuthProvider):
             self._pkce_storage.pop(session_key, None)
             self._state_storage.pop(session_key, None)
             raise
+
+    def refresh_token(self, refresh_token: str) -> dict:
+        """Refresh an expired OAuth2.0 token using refresh token"""
+        raise ValueError("GitHub OAuth does not support token refresh - tokens do not expire")
