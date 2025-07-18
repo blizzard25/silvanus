@@ -13,7 +13,10 @@ async function main() {
   const distributor = await upgrades.deployProxy(
     Distributor,
     [tokenAddressParsed, baseReward],
-    { initializer: "initialize" }
+    { 
+      initializer: "initialize",
+      kind: "uups"
+    }
   );
 
   await distributor.waitForDeployment();

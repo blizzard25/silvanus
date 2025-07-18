@@ -5,7 +5,8 @@ async function main() {
 
   const Silvanus = await ethers.getContractFactory("Silvanus");
   const proxy = await upgrades.deployProxy(Silvanus, [initialSupply], {
-    initializer: "initialize"
+    initializer: "initialize",
+    kind: "uups"
   });
 
   await proxy.waitForDeployment();
