@@ -102,10 +102,61 @@ async function main() {
 
     console.log("⚙️  Step 3: Setting TokenTimelock as grantWallet...");
     
-    const setGrantWalletTx = await silvanusProxy.setGrantWallet(timelockAddress);
-    await setGrantWalletTx.wait();
+    console.log("   Using proxy to set grant wallet directly...");
+    console.log(`   Silvanus proxy: ${silvanusAddress}`);
+    console.log(`   TokenTimelock: ${timelockAddress}`);
+    console.log(`   Deployer: ${deployerAddress}`);
     
-    console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token\n`);
+    try {
+      console.log("   Testing proxy functionality...");
+      const totalSupply = await silvanusProxy.totalSupply();
+      console.log(`   ✅ totalSupply: ${ethers.formatEther(totalSupply)} SVN`);
+      
+      console.log("   Checking ownership...");
+      const currentOwner = await silvanusProxy.owner();
+      console.log(`   Current owner: ${currentOwner}`);
+      console.log(`   Deployer: ${deployerAddress}`);
+      
+      if (currentOwner.toLowerCase() !== deployerAddress.toLowerCase()) {
+        console.log("   Ownership verification failed - checking pending owner...");
+        
+        try {
+          const pendingOwner = await silvanusProxy.pendingOwner();
+          console.log(`   Pending owner: ${pendingOwner}`);
+          
+          if (pendingOwner.toLowerCase() === deployerAddress.toLowerCase()) {
+            console.log("   Accepting ownership...");
+            const acceptTx = await silvanusProxy.acceptOwnership();
+            await acceptTx.wait();
+            console.log("   ✅ Ownership accepted");
+          } else {
+            throw new Error(`Deployer is not the pending owner. Current: ${currentOwner}, Pending: ${pendingOwner}, Deployer: ${deployerAddress}`);
+          }
+        } catch (pendingError) {
+          throw new Error(`Cannot establish ownership: ${pendingError.message}`);
+        }
+      } else {
+        console.log("   ✅ Ownership verified");
+      }
+      
+      console.log("   Setting grant wallet...");
+      const setGrantWalletTx = await silvanusProxy.setGrantWallet(timelockAddress);
+      await setGrantWalletTx.wait();
+      console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token\n`);
+      
+      const grantWallet = await silvanusProxy.grantWallet();
+      console.log(`   Verified grant wallet: ${grantWallet}`);
+      
+      if (grantWallet.toLowerCase() === timelockAddress.toLowerCase()) {
+        console.log("   ✅ Grant wallet verification successful\n");
+      } else {
+        throw new Error(`Grant wallet verification failed. Expected: ${timelockAddress}, Got: ${grantWallet}`);
+      }
+      
+    } catch (error) {
+      console.log(`   ❌ Failed to set grant wallet: ${error.message}`);
+      throw error;
+    }
 
     console.log("🌱 Step 4: Deploying GreenRewardDistributor...");
     
