@@ -44,7 +44,7 @@ contract Silvanus is
         burnRate = _rate;
     }
 
-    /// ⚠️ Only override _update, not _mint/_burn
+    /// Only override _update, not _mint/_burn
     function _update(address from, address to, uint256 value)
         internal
         override(ERC20Upgradeable, ERC20VotesUpgradeable)
@@ -66,7 +66,7 @@ contract Silvanus is
         super._update(from, to, sendAmount);
     }
 
-    /// 🧠 Required because ERC20Votes + Permit both use NoncesUpgradeable
+    /// Required because ERC20Votes + Permit both use NoncesUpgradeable
     function nonces(address owner)
         public
         view
