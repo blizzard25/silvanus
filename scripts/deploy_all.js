@@ -68,10 +68,10 @@ async function main() {
     
     const Silvanus = await ethers.getContractFactory("Silvanus");
     const silvanusProxy = await upgrades.deployProxy(Silvanus, [TOTAL_SUPPLY], {
-      initializer: "initialize"
+      initializer: "initialize",
+      kind: "uups"
     });
     
-    await silvanusProxy.waitForDeployment();
     const silvanusAddress = await silvanusProxy.getAddress();
     deploymentResults.silvanus = silvanusAddress;
     
@@ -93,7 +93,6 @@ async function main() {
       releaseTime
     );
     
-    await timelock.waitForDeployment();
     const timelockAddress = await timelock.getAddress();
     deploymentResults.timelock = timelockAddress;
     
@@ -115,10 +114,12 @@ async function main() {
     const distributorProxy = await upgrades.deployProxy(
       GreenRewardDistributor,
       [silvanusAddress, baseReward],
-      { initializer: "initialize" }
+      { 
+        initializer: "initialize",
+        kind: "uups"
+      }
     );
     
-    await distributorProxy.waitForDeployment();
     const distributorAddress = await distributorProxy.getAddress();
     deploymentResults.distributor = distributorAddress;
     
@@ -129,7 +130,6 @@ async function main() {
     
     const SVNPresale = await ethers.getContractFactory("SVNPresale");
     const presale = await SVNPresale.deploy(silvanusAddress);
-    await presale.waitForDeployment();
     
     const presaleAddress = await presale.getAddress();
     deploymentResults.presale = presaleAddress;
