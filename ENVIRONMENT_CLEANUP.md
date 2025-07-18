@@ -148,8 +148,33 @@ npx hardhat run scripts/fund_all.js --network sepolia
 2. Check network congestion
 3. Try increasing gas limit in hardhat.config.js if needed
 
+## Node.js Version Compatibility
+
+**Important**: This project requires Node.js v20.17.0 or compatible versions due to micro-eth-signer dependencies.
+
+### If you encounter ERR_REQUIRE_ESM errors:
+1. Check your Node.js version: `node --version`
+2. If using Node.js v20.17.0, ensure micro-eth-signer is pinned to version 0.14.0 in package.json
+3. If using Node.js v20.19.0+, you can use newer micro-eth-signer versions
+
+### Windows-specific fixes:
+- Use the cleanup commands provided for your shell (CMD vs PowerShell)
+- Ensure package-lock.json is deleted and regenerated after version changes
+- After changing package.json dependencies, run:
+  ```cmd
+  del package-lock.json
+  npm install
+  ```
+
+### ES Module Compatibility Fix:
+If you see `Error [ERR_REQUIRE_ESM]: require() of ES Module` errors:
+1. Delete package-lock.json and node_modules
+2. Ensure micro-eth-signer is pinned to 0.14.0 in package.json dependencies
+3. Reinstall dependencies with `npm install`
+
 ## Success Criteria
 - `deploy.js` completes in ~20 seconds
 - `deploy_distributor.js` completes in ~20 seconds  
 - `fund_all.js` successfully distributes tokens without hanging
 - No persistent hanging issues across multiple script runs
+- No ERR_REQUIRE_ESM errors on Windows with Node.js v20.17.0
