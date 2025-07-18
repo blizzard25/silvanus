@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PermitUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract Silvanus is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, UUPSUpgradeable {
+contract Silvanus is
+    Initializable,
+    ERC20PermitUpgradeable,
+    ERC20VotesUpgradeable,
+    Ownable2StepUpgradeable,
+    UUPSUpgradeable
+{
     uint256 public burnRate;
     address public grantWallet;
 
@@ -17,18 +24,33 @@ contract Silvanus is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
 
     function initialize(uint256 initialSupply) public initializer {
         __ERC20_init("Silvanus", "SVN");
+        __ERC20Permit_init("Silvanus");
+        __ERC20Votes_init();
         __Ownable_init(msg.sender);
         __Ownable2Step_init();
         __UUPSUpgradeable_init();
 
-        burnRate = 0; // Initially 0
+        burnRate = 0;
         _mint(msg.sender, initialSupply);
     }
 
-    // Override _update to split and redirect "burn"
-    function _update(address from, address to, uint256 value) internal virtual override {
-        // Skip burn mechanism for minting (when from == address(0))
+    function setGrantWallet(address _wallet) external onlyOwner {
+        require(_wallet != address(0), "Invalid address");
+        grantWallet = _wallet;
+    }
+
+    function setBurnRate(uint256 _rate) external onlyOwner {
+        require(_rate <= 10000, "Max 100%");
+        burnRate = _rate;
+    }
+
+    /// ⚠️ Only override _update, not _mint/_burn
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20Upgradeable, ERC20VotesUpgradeable)
+    {
         if (from == address(0)) {
+            // Minting
             super._update(from, to, value);
             return;
         }
@@ -38,21 +60,25 @@ contract Silvanus is Initializable, ERC20Upgradeable, Ownable2StepUpgradeable, U
 
         if (burnAmount > 0) {
             require(grantWallet != address(0), "Grant wallet not set");
-            super._update(from, grantWallet, burnAmount); // Redirected to grant wallet
+            super._update(from, grantWallet, burnAmount);
         }
 
         super._update(from, to, sendAmount);
     }
 
-    function setBurnRate(uint256 _rate) external onlyOwner {
-        require(_rate <= 10000, "Burn rate too high");
-        burnRate = _rate;
+    /// 🧠 Required because ERC20Votes + Permit both use NoncesUpgradeable
+    function nonces(address owner)
+        public
+        view
+        override(ERC20PermitUpgradeable, NoncesUpgradeable)
+        returns (uint256)
+    {
+        return super.nonces(owner);
     }
 
-    function setGrantWallet(address _wallet) external onlyOwner {
-        require(_wallet != address(0), "Invalid address");
-        grantWallet = _wallet;
-    }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
 }
