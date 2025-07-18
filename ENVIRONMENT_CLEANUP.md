@@ -176,12 +176,33 @@ If you see `Error [ERR_REQUIRE_ESM]: require() of ES Module` errors:
 If deployment scripts timeout with "Timed out waiting for implementation contract deployment":
 1. Check network connectivity to Sepolia RPC endpoint
 2. Verify sufficient ETH balance for gas fees
-3. Consider increasing timeout values in hardhat.config.js if network is slow
-4. Try deployment during off-peak hours to avoid network congestion
+3. Ensure hardhat.config.js has explicit gas configuration:
+   ```javascript
+   networks: {
+     sepolia: {
+       url: SEPOLIA_RPC_URL,
+       accounts: [PRIVATE_KEY],
+       gas: 8000000,
+       gasPrice: 20000000000
+     }
+   }
+   ```
+4. Remove `await proxy.waitForDeployment()` calls from deployment scripts
+5. Try deployment during off-peak hours to avoid network congestion
+
+### Root Cause of Hanging Issue:
+The deployment hanging was caused by two factors:
+1. **Missing explicit gas configuration** in hardhat.config.js
+2. **waitForDeployment() calls** causing scripts to hang indefinitely
+
+### Solution Applied:
+- Added explicit `gas: 8000000` and `gasPrice: 20000000000` to network configurations
+- Removed `await proxy.waitForDeployment()` calls from all deployment scripts
+- Use `await proxy.getAddress()` directly after deployProxy for immediate address retrieval
 
 ## Success Criteria
-- `deploy.js` completes in ~20 seconds
-- `deploy_distributor.js` completes in ~20 seconds  
+- `deploy.js` completes in ~15 seconds
+- `deploy_distributor.js` completes in ~15 seconds  
 - `fund_all.js` successfully distributes tokens without hanging
 - No persistent hanging issues across multiple script runs
 - No ERR_REQUIRE_ESM errors on Windows with Node.js v20.17.0

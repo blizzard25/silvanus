@@ -15,13 +15,9 @@ async function main() {
     [tokenAddressParsed, baseReward],
     { 
       initializer: "initialize",
-      kind: "uups",
-      timeout: 120000, // 2 minutes
-      pollingInterval: 3000 // 3 seconds
+      kind: "uups"
     }
   );
-
-  await distributor.waitForDeployment();
 
   console.log("✅ GreenRewardDistributor (proxy) deployed to:", await distributor.getAddress());
 }
