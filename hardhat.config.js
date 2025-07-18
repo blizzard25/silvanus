@@ -11,7 +11,7 @@ module.exports = {
       url: SEPOLIA_RPC_URL,
       accounts: [PRIVATE_KEY],
       gas: 8000000,
-      gasPrice: 20000000000
+      gasPrice: 2000000000
     },
     mainnet: {
       url: MAINNET_RPC_URL || "https://eth-mainnet.g.alchemy.com/v2/your-api-key",
