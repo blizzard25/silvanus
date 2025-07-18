@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("dotenv").config();
 
-const { SEPOLIA_RPC_URL, MAINNET_RPC_URL, PRIVATE_KEY } = process.env;
+const { SEPOLIA_RPC_URL, MAINNET_RPC_URL, PRIVATE_KEY, ETHERSCAN_API_KEY } = process.env;
 
 module.exports = {
   solidity: "0.8.22",
@@ -20,4 +20,9 @@ module.exports = {
       gasPrice: 20000000000, // 20 gwei
     },
   },
+  etherscan: {
+    apiKey: {
+      sepolia: ETHERSCAN_API_KEY
+    }
+  }
 };
