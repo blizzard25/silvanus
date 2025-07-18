@@ -102,53 +102,47 @@ async function main() {
 
     console.log("⚙️  Step 3: Setting TokenTimelock as grantWallet...");
     
-    console.log("   Getting contract instance for ownership verification...");
-    const silvanusContract = await ethers.getContractAt("Silvanus", silvanusAddress, deployer);
+    console.log("   Using proxy to set grant wallet directly...");
+    console.log(`   Silvanus proxy: ${silvanusAddress}`);
+    console.log(`   TokenTimelock: ${timelockAddress}`);
+    console.log(`   Deployer: ${deployerAddress}`);
     
     try {
-      console.log("   Checking contract ownership...");
-      const currentOwner = await silvanusContract.owner();
-      console.log(`   Current owner: ${currentOwner}`);
-      console.log(`   Deployer: ${deployerAddress}`);
+      console.log("   Checking proxy ownership...");
+      const proxyOwner = await silvanusProxy.owner();
+      console.log(`   Proxy owner: ${proxyOwner}`);
       
-      if (currentOwner.toLowerCase() !== deployerAddress.toLowerCase()) {
-        console.log("   Ownership not established, checking pending owner...");
+      if (proxyOwner.toLowerCase() === deployerAddress.toLowerCase()) {
+        console.log("   ✅ Ownership verified - proceeding with setGrantWallet");
+        const setGrantWalletTx = await silvanusProxy.setGrantWallet(timelockAddress);
+        await setGrantWalletTx.wait();
+        console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token\n`);
+      } else {
+        console.log("   ❌ Ownership mismatch - checking if ownership needs to be accepted");
+        
         try {
-          const pendingOwner = await silvanusContract.pendingOwner();
+          const pendingOwner = await silvanusProxy.pendingOwner();
           console.log(`   Pending owner: ${pendingOwner}`);
           
           if (pendingOwner.toLowerCase() === deployerAddress.toLowerCase()) {
             console.log("   Accepting ownership...");
-            const acceptTx = await silvanusContract.acceptOwnership();
+            const acceptTx = await silvanusProxy.acceptOwnership();
             await acceptTx.wait();
             console.log("   ✅ Ownership accepted");
+            
+            const setGrantWalletTx = await silvanusProxy.setGrantWallet(timelockAddress);
+            await setGrantWalletTx.wait();
+            console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token\n`);
           } else {
-            throw new Error(`Deployer is not the pending owner. Current: ${currentOwner}, Pending: ${pendingOwner}, Deployer: ${deployerAddress}`);
+            throw new Error(`Deployer is not the pending owner. Current: ${proxyOwner}, Pending: ${pendingOwner}, Deployer: ${deployerAddress}`);
           }
-        } catch (error) {
-          console.log("   No pending owner or error checking:", error.message);
-          throw new Error(`Cannot establish ownership. Current owner: ${currentOwner}, Deployer: ${deployerAddress}`);
+        } catch (pendingError) {
+          throw new Error(`Cannot establish ownership: ${pendingError.message}`);
         }
-      } else {
-        console.log("   ✅ Ownership already established");
       }
-      
-      console.log("   Setting TokenTimelock as grantWallet...");
-      const setGrantWalletTx = await silvanusContract.setGrantWallet(timelockAddress);
-      await setGrantWalletTx.wait();
-      
-      console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token\n`);
     } catch (error) {
-      console.log("   Error during ownership verification or setGrantWallet:", error.message);
-      
-      console.log("   Attempting direct setGrantWallet call...");
-      try {
-        const setGrantWalletTx = await silvanusContract.setGrantWallet(timelockAddress);
-        await setGrantWalletTx.wait();
-        console.log(`✅ TokenTimelock set as grantWallet in Silvanus Token (direct call)\n`);
-      } catch (directError) {
-        throw new Error(`Failed to set grant wallet: ${directError.message}`);
-      }
+      console.log(`   ❌ Failed to set grant wallet: ${error.message}`);
+      throw error;
     }
 
     console.log("🌱 Step 4: Deploying GreenRewardDistributor...");
