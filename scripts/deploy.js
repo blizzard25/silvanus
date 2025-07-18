@@ -9,7 +9,6 @@ async function main() {
     kind: "uups"
   });
 
-  await proxy.waitForDeployment();
   console.log("Silvanus (proxy) deployed to:", await proxy.getAddress());
 }
 

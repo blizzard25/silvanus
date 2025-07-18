@@ -19,8 +19,6 @@ async function main() {
     }
   );
 
-  await distributor.waitForDeployment();
-
   console.log("✅ GreenRewardDistributor (proxy) deployed to:", await distributor.getAddress());
 }
 
