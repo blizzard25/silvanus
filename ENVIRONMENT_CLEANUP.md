@@ -172,9 +172,17 @@ If you see `Error [ERR_REQUIRE_ESM]: require() of ES Module` errors:
 2. Ensure micro-eth-signer is pinned to 0.14.0 in package.json dependencies
 3. Reinstall dependencies with `npm install`
 
+### Deployment Timeout Issues:
+If deployment scripts timeout with "Timed out waiting for implementation contract deployment":
+1. Check network connectivity to Sepolia RPC endpoint
+2. Verify sufficient ETH balance for gas fees
+3. Consider increasing timeout values in hardhat.config.js if network is slow
+4. Try deployment during off-peak hours to avoid network congestion
+
 ## Success Criteria
 - `deploy.js` completes in ~20 seconds
 - `deploy_distributor.js` completes in ~20 seconds  
 - `fund_all.js` successfully distributes tokens without hanging
 - No persistent hanging issues across multiple script runs
 - No ERR_REQUIRE_ESM errors on Windows with Node.js v20.17.0
+- No transaction timeout errors during deployment
