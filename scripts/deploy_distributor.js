@@ -15,7 +15,9 @@ async function main() {
     [tokenAddressParsed, baseReward],
     { 
       initializer: "initialize",
-      kind: "uups"
+      kind: "uups",
+      timeout: 120000, // 2 minutes
+      pollingInterval: 3000 // 3 seconds
     }
   );
 
