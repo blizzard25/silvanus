@@ -10,12 +10,28 @@ The `deploy_all.js` script introduced persistent state corruption that caused al
 ## Local Environment Cleanup Steps
 
 ### 1. Clear Hardhat Cache and OpenZeppelin State
+
+**Linux/macOS:**
 ```bash
 npx hardhat clean
 rm -rf .openzeppelin/
 ```
 
+**Windows Command Prompt:**
+```cmd
+npx hardhat clean
+rmdir /s .openzeppelin
+```
+
+**Windows PowerShell:**
+```powershell
+npx hardhat clean
+Remove-Item -Recurse -Force .openzeppelin
+```
+
 ### 2. Clear Node.js Cache (if needed)
+
+**All platforms:**
 ```bash
 npm cache clean --force
 # or if using yarn/pnpm
@@ -24,10 +40,24 @@ pnpm store prune
 ```
 
 ### 3. Reinstall Dependencies (if issues persist)
+
+**Linux/macOS:**
 ```bash
 rm -rf node_modules/
 npm install
 # or yarn install / pnpm install
+```
+
+**Windows Command Prompt:**
+```cmd
+rmdir /s node_modules
+npm install
+```
+
+**Windows PowerShell:**
+```powershell
+Remove-Item -Recurse -Force node_modules
+npm install
 ```
 
 ### 4. Verify Environment Variables
@@ -101,7 +131,10 @@ npx hardhat run scripts/fund_all.js --network sepolia
 
 ### If deployment scripts still hang:
 1. Open a new terminal/shell session
-2. Clear OpenZeppelin state: `rm -rf .openzeppelin/`
+2. Clear OpenZeppelin state:
+   - **Linux/macOS**: `rm -rf .openzeppelin/`
+   - **Windows CMD**: `rmdir /s .openzeppelin`
+   - **Windows PowerShell**: `Remove-Item -Recurse -Force .openzeppelin`
 3. Run `npx hardhat clean`
 4. Try deployment again
 
