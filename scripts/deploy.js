@@ -8,6 +8,37 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]);
 }
 
+async function deployProxyWithRetry(contractFactory, args, options, contractName, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🚀 Deploying ${contractName} proxy (attempt ${attempt}/${maxRetries})...`);
+      
+      if (global.gc) {
+        global.gc();
+      }
+      
+      const contract = await upgrades.deployProxy(contractFactory, args, options);
+      
+      console.log(`⏳ Waiting for ${contractName} deployment confirmation...`);
+      await contract.waitForDeployment();
+      
+      const address = await contract.getAddress();
+      console.log(`✅ ${contractName} deployed successfully at: ${address}`);
+      
+      return contract;
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} failed for ${contractName}:`, error.message);
+      
+      if (attempt === maxRetries) {
+        throw new Error(`${contractName} deployment failed after ${maxRetries} attempts: ${error.message}`);
+      }
+      
+      console.log(`⏳ Waiting 10 seconds before retry...`);
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    }
+  }
+}
+
 async function deployProxyWithErrorHandling(contractFactory, args, options, contractName) {
   try {
     console.log(`🚀 Deploying ${contractName} proxy...`);
@@ -144,11 +175,11 @@ async function main() {
   try {
     console.log("🚀 Step 1: Calling upgrades.deployProxy...");
     silvanus = await withTimeout(
-      deployProxyWithErrorHandling(Silvanus, [initialSupply], {
+      deployProxyWithRetry(Silvanus, [initialSupply], {
         initializer: "initialize",
         kind: "uups",
       }, "Silvanus"),
-      20000,
+      180000,
       "deployProxy"
     );
     console.log("✅ Step 2: deployProxy resolved");
