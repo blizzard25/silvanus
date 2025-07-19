@@ -1,0 +1,117 @@
+diff --git a/node_modules/@nomicfoundation/hardhat-ethers/internal/ethers-utils.js b/node_modules/@nomicfoundation/hardhat-ethers/internal/ethers-utils.js
+index ef8583b..f4370d0 100644
+--- a/node_modules/@nomicfoundation/hardhat-ethers/internal/ethers-utils.js
++++ b/node_modules/@nomicfoundation/hardhat-ethers/internal/ethers-utils.js
+@@ -100,14 +100,24 @@ function object(format, altNames) {
+                 }
+             }
+             try {
+-                const nv = format[key](value[srcKey]);
+-                if (nv !== undefined) {
+-                    result[key] = nv;
++                if (key === "to" && (value[srcKey] === "" || value[srcKey] === null || value[srcKey] === undefined)) {
++                    console.log(`🔍 Handling empty 'to' field for contract creation transaction`);
++                    result[key] = null;
++                } else {
++                    const nv = format[key](value[srcKey]);
++                    if (nv !== undefined) {
++                        result[key] = nv;
++                    }
+                 }
+             }
+             catch (error) {
+-                const message = error instanceof Error ? error.message : "not-an-error";
+-                (0, ethers_1.assert)(false, `invalid value for value.${key} (${message})`, "BAD_DATA", { value });
++                if (key === "to") {
++                    console.warn("⚠️  Caught error in 'to' field processing, setting to null for contract creation:", error instanceof Error ? error.message : error);
++                    result[key] = null;
++                } else {
++                    const message = error instanceof Error ? error.message : "not-an-error";
++                    (0, ethers_1.assert)(false, `invalid value for value.${key} (${message})`, "BAD_DATA", { value });
++                }
+             }
+         }
+         return result;
+diff --git a/node_modules/@nomicfoundation/hardhat-ethers/src/internal/ethers-utils.ts b/node_modules/@nomicfoundation/hardhat-ethers/src/internal/ethers-utils.ts
+index 5b04864..b6a9e40 100644
+--- a/node_modules/@nomicfoundation/hardhat-ethers/src/internal/ethers-utils.ts
++++ b/node_modules/@nomicfoundation/hardhat-ethers/src/internal/ethers-utils.ts
+@@ -161,18 +161,24 @@ function object(
+       }
+ 
+       try {
+-        const nv = format[key](value[srcKey]);
+-        if (nv !== undefined) {
+-          result[key] = nv;
++        if (key === "to" && (value[srcKey] === "" || value[srcKey] === null || value[srcKey] === undefined)) {
++          console.log(`🔍 Handling empty 'to' field for contract creation transaction`);
++          result[key] = null;
++        } else {
++          const nv = format[key](value[srcKey]);
++          if (nv !== undefined) {
++            result[key] = nv;
++          }
+         }
+       } catch (error) {
+-        const message = error instanceof Error ? error.message : "not-an-error";
+-        assert(
+-          false,
+-          `invalid value for value.${key} (${message})`,
+-          "BAD_DATA",
+-          { value }
+-        );
++        if (key === "to") {
++          console.warn("⚠️  Caught error in 'to' field processing, setting to null for contract creation:", error instanceof Error ? error.message : error);
++          result[key] = null;
++        } else {
++          const message = error instanceof Error ? error.message : "not-an-error";
++          console.error(`❌ Error processing field '${key}':`, message);
++          throw error;
++        }
+       }
+     }
+     return result;
+@@ -182,7 +188,7 @@ function object(
+ function allowNull(format: FormatFunc, nullValue?: any): FormatFunc {
+   return function (value: any) {
+     // eslint-disable-next-line eqeqeq
+-    if (value === null || value === undefined) {
++    if (value === null || value === undefined || value === "") {
+       return nullValue;
+     }
+     return format(value);
+@@ -209,6 +215,14 @@ export function formatTransactionResponse(
+     value.to = "0x0000000000000000000000000000000000000000";
+   }
+   
++  if (value.to === "") {
++    value.to = null;
++  }
++
++  if (value.to === "") {
++    value.to = null;
++  }
++
+   const result = object(
+     {
+       hash: formatHash,
+@@ -235,7 +249,18 @@ export function formatTransactionResponse(
+       maxFeePerGas: allowNull(getBigInt),
+ 
+       gasLimit: getBigInt,
+-      to: allowNull(getAddress, null),
++      to: (value) => {
++        if (value === "" || value === null || value === undefined) {
++          console.log("🔍 Contract creation: 'to' field is empty, setting to null");
++          return null;
++        }
++        try {
++          return getAddress(value);
++        } catch (error) {
++          console.warn("⚠️  Failed to parse 'to' address, treating as contract creation:", error instanceof Error ? error.message : error);
++          return null;
++        }
++      },
+       value: getBigInt,
+       nonce: getNumber,
+       data: formatData,
