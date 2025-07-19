@@ -223,9 +223,31 @@ If you see `Error [ERR_REQUIRE_ESM]: require() of ES Module` errors:
 2. Ensure micro-eth-signer is pinned to 0.14.0 in package.json dependencies
 3. Reinstall dependencies with `npm install`
 
+## Patch-Package Setup ✅ IMPLEMENTED
+
+The ethers.js modifications are now permanent using `patch-package`. The setup is complete and patches are automatically applied after `npm install`.
+
+**What's Included:**
+- `patch-package` installed as dev dependency
+- Patch file: `patches/@nomicfoundation+hardhat-ethers+3.0.9.patch`
+- Automatic patch application via `postinstall` script in package.json
+
+**For New Developers:**
+1. Clone repository: `git clone <repo>`
+2. Install dependencies: `npm install` (patches auto-apply)
+3. Verify patches: Look for "Applying patches..." message during install
+4. Deploy: `npx hardhat run scripts/deploy_all.js --network mainnet`
+
+**Maintenance Notes:**
+- Patches are specific to `@nomicfoundation/hardhat-ethers@3.0.9`
+- If upgrading this package, patches may need regeneration
+- To regenerate patches: modify node_modules files, then run `npx patch-package @nomicfoundation/hardhat-ethers`
+
 ## Success Criteria
-- `deploy.js` completes in ~20 seconds
+- `deploy.js` completes in ~20 seconds ✅
 - `deploy_distributor.js` completes in ~20 seconds  
 - `fund_all.js` successfully distributes tokens without hanging
 - No persistent hanging issues across multiple script runs
 - No ERR_REQUIRE_ESM errors on Windows with Node.js v20.17.0
+- Patch-package automatically applies ethers.js fixes ✅
+- Mainnet deployment succeeds without "invalid address" errors ✅
