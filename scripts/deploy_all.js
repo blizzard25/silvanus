@@ -35,7 +35,7 @@ async function main() {
   // Step 1: Deploy Silvanus Token
   console.log("\n🪙 Step 1: Deploying Silvanus Token...");
   const Silvanus = await ethers.getContractFactory("Silvanus");
-  const silvanus = await upgrades.deployProxy(Silvanus, [deployer.address], {
+  const silvanus = await upgrades.deployProxy(Silvanus, [ethers.parseEther("100000000")], {
     initializer: "initialize",
     kind: "uups",
   });
