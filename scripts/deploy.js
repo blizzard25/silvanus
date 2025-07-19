@@ -1,7 +1,6 @@
 require("dotenv").config();
 const { ethers, upgrades, network } = require("hardhat");
 
-// Utility: Timeout wrapper
 function withTimeout(promise, ms, label) {
   let timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error(`⏱ Timeout in step: ${label}`)), ms)
@@ -9,12 +8,82 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]);
 }
 
+async function deployProxyWithErrorHandling(contractFactory, args, options, contractName) {
+  try {
+    console.log(`🚀 Deploying ${contractName} proxy...`);
+    const contract = await upgrades.deployProxy(contractFactory, args, options);
+    
+    console.log(`⏳ Waiting for ${contractName} deployment...`);
+    await contract.waitForDeployment();
+    
+    const address = await contract.getAddress();
+    console.log(`✅ ${contractName} deployed at: ${address}`);
+    
+    return contract;
+  } catch (error) {
+    if (error.message && 
+        error.message.includes('invalid value for value.to') && 
+        error.message.includes('invalid address') &&
+        error.code === 'INVALID_ARGUMENT') {
+      
+      console.warn(`⚠️  Detected ethers.js transaction formatting error during ${contractName} deployment`);
+      console.warn("   This may indicate a successful deployment with formatting issues");
+      console.warn("   Attempting to recover and verify deployment...");
+      
+      try {
+        const address = await contract.getAddress();
+        console.log(`🔍 Recovery attempt: Found contract at ${address}`);
+        return contract;
+      } catch (recoveryError) {
+        console.error(`❌ Recovery failed for ${contractName}: ${recoveryError.message}`);
+        throw new Error(`${contractName} deployment failed - unable to recover from formatting error`);
+      }
+    }
+    
+    console.error(`❌ ${contractName} deployment failed:`, error.message);
+    throw error;
+  }
+}
+
+async function verifyContractInitialization(contract, contractName, expectedChecks = {}) {
+  try {
+    const address = await contract.getAddress();
+    console.log(`🔍 Verifying ${contractName} initialization at ${address}...`);
+    
+    if (expectedChecks.totalSupply) {
+      const totalSupply = await contract.totalSupply();
+      const expected = expectedChecks.totalSupply;
+      
+      if (totalSupply.toString() !== expected.toString()) {
+        throw new Error(`${contractName} initialization failed: expected ${ethers.formatEther(expected)} tokens, got ${ethers.formatEther(totalSupply)}`);
+      }
+      
+      console.log(`✅ ${contractName} total supply verified: ${ethers.formatEther(totalSupply)} tokens`);
+    }
+    
+    if (expectedChecks.deployerBalance) {
+      const deployerBalance = await contract.balanceOf(expectedChecks.deployerAddress);
+      const expected = expectedChecks.deployerBalance;
+      
+      if (deployerBalance.toString() !== expected.toString()) {
+        throw new Error(`${contractName} initialization failed: expected deployer balance ${ethers.formatEther(expected)} tokens, got ${ethers.formatEther(deployerBalance)}`);
+      }
+      
+      console.log(`✅ ${contractName} deployer balance verified: ${ethers.formatEther(deployerBalance)} tokens`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`❌ ${contractName} verification failed:`, error.message);
+    throw error;
+  }
+}
+
 async function main() {
   console.log("🔧 Starting Silvanus deployment script...");
   console.log("🌐 Network name:", network.name);
   console.log(`🌐 ENV Check — Alchemy Mainnet URL starts with: ${process.env.MAINNET_RPC_URL?.slice(0, 40)}...`);
 
-  // Get deployer signer
   const [deployer] = await ethers.getSigners();
   if (!deployer || !deployer.address) {
     throw new Error("❌ No deployer signer found");
@@ -29,7 +98,6 @@ async function main() {
     console.warn("⚠️ Deployer may have insufficient funds for mainnet deployment.");
   }
 
-  // Load contract factory
   let Silvanus;
   try {
     Silvanus = await ethers.getContractFactory("Silvanus");
@@ -41,12 +109,11 @@ async function main() {
     throw err;
   }
 
-  // Parse initial supply
   const tokenSymbol = "SVN";
   const decimals = 18;
   let initialSupply;
   try {
-    const rawSupply = "100000000"; // 100 million
+    const rawSupply = "100000000";
     initialSupply = ethers.parseUnits(rawSupply, decimals);
     if (typeof initialSupply !== "bigint" || initialSupply <= 0n) {
       throw new Error("initialSupply is invalid");
@@ -58,35 +125,39 @@ async function main() {
     throw err;
   }
 
-  // Try estimating gas
   try {
     console.log("📐 Attempting to estimate gas for deployment...");
-    const estimatedGas = await upgrades.estimateGas.deployProxy(Silvanus, [initialSupply], {
-      initializer: "initialize",
-      kind: "uups",
-    });
-    console.log(`⛽ Estimated gas: ${estimatedGas.toString()}`);
+    if (upgrades.estimateGas && upgrades.estimateGas.deployProxy) {
+      const estimatedGas = await upgrades.estimateGas.deployProxy(Silvanus, [initialSupply], {
+        initializer: "initialize",
+        kind: "uups",
+      });
+      console.log(`⛽ Estimated gas: ${estimatedGas.toString()}`);
+    } else {
+      console.log("⚠️ Gas estimation not available for deployProxy");
+    }
   } catch (err) {
     console.warn("⚠️ Could not estimate gas:", err.message);
   }
 
-  // Deploy proxy contract
   let silvanus;
   try {
     console.log("🚀 Step 1: Calling upgrades.deployProxy...");
     silvanus = await withTimeout(
-      upgrades.deployProxy(Silvanus, [initialSupply], {
+      deployProxyWithErrorHandling(Silvanus, [initialSupply], {
         initializer: "initialize",
         kind: "uups",
-      }),
+      }, "Silvanus"),
       20000,
       "deployProxy"
     );
     console.log("✅ Step 2: deployProxy resolved");
 
-    console.log("🔄 Step 3: Awaiting waitForDeployment...");
-    await withTimeout(silvanus.waitForDeployment(), 15000, "waitForDeployment");
-    console.log("✅ Step 4: Deployment confirmed");
+    await verifyContractInitialization(silvanus, "Silvanus", {
+      totalSupply: initialSupply,
+      deployerBalance: initialSupply,
+      deployerAddress: deployerAddress
+    });
 
     const proxyAddress = await silvanus.getAddress();
     if (!ethers.isAddress(proxyAddress)) {
@@ -94,13 +165,8 @@ async function main() {
     }
     console.log(`✅ Silvanus proxy deployed at: ${proxyAddress}`);
 
-    // Implementation contract address
     const implAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
     console.log(`🔍 Implementation logic contract at: ${implAddress}`);
-
-    // Verify deployer's token balance
-    const balance = await silvanus.balanceOf(deployerAddress);
-    console.log(`💰 Deployer token balance: ${ethers.formatUnits(balance, decimals)} ${tokenSymbol}`);
   } catch (err) {
     console.error("❌ Deployment or post-deployment check failed:");
     console.error(err.stack || err);
@@ -108,7 +174,6 @@ async function main() {
   }
 }
 
-// Global catch
 main().catch((err) => {
   console.error("❌ Script terminated due to error:", err.message || err);
   process.exit(1);
