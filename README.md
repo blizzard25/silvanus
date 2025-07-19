@@ -204,6 +204,7 @@ adjustedReward = (score * baseReward) / log10(totalEvents + 10)
 | Activity Type | Description | Reward Calculation |
 |---------------|-------------|-------------------|
 | `solar_export` | Power exported to grid from solar panels | kWh × reward multiplier |
+| `wind_export` | Power exported to grid from wind turbine generation | kWh × reward multiplier |
 | `ev_charging` | EV charging with clean/off-peak energy | kWh × reward multiplier |
 | `regen_braking` | Energy recovered through regenerative braking | kWh × reward multiplier |
 | `thermostat_adjustment` | Smart thermostat energy savings | kWh × reward multiplier |
