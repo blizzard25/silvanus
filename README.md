@@ -10,6 +10,7 @@ Silvanus is a revolutionary cryptocurrency focusing on greenchain solutions that
 
 Proof-of-Green (PoG) is our innovative consensus mechanism that rewards real-world environmental actions:
 
+- **Commercial Energy Production**: Clean energy producers generate SVN tokens to use as liqudity/secondary income as replacements to centralized Renewable Energy Credits
 - **Solar Energy Export**: Earn SVN tokens for excess solar power fed back to the grid
 - **EV Charging**: Get rewarded for charging electric vehicles with clean energy
 - **Regenerative Braking**: Receive tokens for energy recovered through EV regenerative braking
