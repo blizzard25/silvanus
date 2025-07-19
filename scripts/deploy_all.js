@@ -1,3 +1,4 @@
+// deploy_all.js
 const hre = require("hardhat");
 const fs = require("fs");
 const { ethers, upgrades } = hre;
@@ -9,17 +10,14 @@ async function main() {
   const network = await ethers.provider.getNetwork();
   const balance = await ethers.provider.getBalance(deployer.address);
 
-  console.log(`📡 Deploying to network: ${network.name} (Chain ID: ${network.chainId})`);
-  console.log(`👤 Deployer address: ${deployer.address}`);
-  console.log(`💰 Deployer balance: ${ethers.formatEther(balance)} ETH\n`);
+  console.log(`📡 Network: ${network.name} (Chain ID: ${network.chainId})`);
+  console.log(`👤 Deployer: ${deployer.address}`);
+  console.log(`💰 Balance: ${ethers.formatEther(balance)} ETH\n`);
 
   const grantBeneficiary = process.env.GRANT_BENEFICIARY;
-  if (!grantBeneficiary) {
-    console.error("❌ GRANT_BENEFICIARY is not defined in .env. Aborting.");
-    process.exit(1);
-  }
+  if (!grantBeneficiary) throw new Error("❌ GRANT_BENEFICIARY missing in .env");
 
-  const wallets = {
+  const walletsRaw = {
     developerTreasury: process.env.DEVELOPER_TREASURY,
     marketing: process.env.PROJECT_SUPPORT_AND_MARKETING,
     partnerships: process.env.PARTNERSHIPS,
@@ -27,48 +25,44 @@ async function main() {
     timelockBeneficiary: grantBeneficiary,
   };
 
-  console.log("📋 Wallet addresses loaded:");
-  for (const [label, address] of Object.entries(wallets)) {
-    console.log(`   ${label.replace(/([A-Z])/g, " $1")}: ${address}`);
+  const wallets = {};
+  for (const [key, addr] of Object.entries(walletsRaw)) {
+    if (!addr?.trim()) throw new Error(`❌ Missing address for ${key}`);
+    wallets[key] = ethers.getAddress(addr.trim());
+    console.log(`✅ ${key}: ${wallets[key]}`);
   }
 
-  // Step 1: Deploy Silvanus Token
-  console.log("\n🪙 Step 1: Deploying Silvanus Token...");
+  // Step 1: Deploy Silvanus Token with initialSupply
+  console.log("\n🪙 Deploying Silvanus Token...");
   const Silvanus = await ethers.getContractFactory("Silvanus");
   const silvanus = await upgrades.deployProxy(Silvanus, [ethers.parseEther("100000000")], {
     initializer: "initialize",
     kind: "uups",
   });
   await silvanus.waitForDeployment();
-
   const silvanusAddress = await silvanus.getAddress();
-  const logicAddress = await upgrades.erc1967.getImplementationAddress(silvanusAddress);
-  const totalSupply = await silvanus.totalSupply();
+  const silvanusImpl = await upgrades.erc1967.getImplementationAddress(silvanusAddress);
+  console.log(`✅ Silvanus deployed at: ${silvanusAddress}`);
+  console.log(`   Logic implementation: ${silvanusImpl}`);
 
-  console.log(`✅ Silvanus Token deployed to: ${silvanusAddress}`);
-  console.log(`   Logic contract at: ${logicAddress}`);
-  console.log(`   Initial supply minted to deployer: ${ethers.formatUnits(totalSupply, 18)} SVN`);
-
-  // Step 2: Deploy TokenTimelock (used as Grant Wallet)
-  console.log("\n🔒 Step 2: Deploying TokenTimelock...");
+  // Step 2: Deploy TokenTimelock
+  console.log("\n🔒 Deploying TokenTimelock...");
   const TokenTimelock = await ethers.getContractFactory("TokenTimelock");
-  const releaseTime = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 90; // 90 days
+  const releaseTime = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 90;
   const timelock = await TokenTimelock.deploy(silvanusAddress, wallets.timelockBeneficiary, releaseTime);
   await timelock.waitForDeployment();
   const timelockAddress = await timelock.getAddress();
+  console.log(`✅ TokenTimelock deployed at: ${timelockAddress}`);
 
-  console.log(`✅ TokenTimelock deployed to: ${timelockAddress}`);
-  console.log(`   Beneficiary: ${wallets.timelockBeneficiary}`);
-  console.log(`   Release date: ${new Date(releaseTime * 1000).toISOString()}`);
-
-  console.log("\n⚙️  Step 3: Setting TokenTimelock as grantWallet...");
+  // Step 3: Set Grant Wallet
+  console.log("\n⚙️ Setting grant wallet...");
   await silvanus.setGrantWallet(timelockAddress);
   console.log(`✅ Grant wallet set to: ${timelockAddress}`);
 
-  // Step 4: Deploy GreenRewardDistributor (proxy)
-  console.log("\n🌿 Step 4: Deploying GreenRewardDistributor (UUPS Proxy)...");
-  const baseReward = ethers.parseEther("1");
+  // Step 4: Deploy GreenRewardDistributor
+  console.log("\n🌿 Deploying GreenRewardDistributor...");
   const GreenRewardDistributor = await ethers.getContractFactory("GreenRewardDistributor");
+  const baseReward = ethers.parseEther("1");
   const distributor = await upgrades.deployProxy(
     GreenRewardDistributor,
     [silvanusAddress, baseReward],
@@ -79,10 +73,12 @@ async function main() {
   );
   await distributor.waitForDeployment();
   const distributorAddress = await distributor.getAddress();
-  console.log(`✅ GreenRewardDistributor (proxy) deployed to: ${distributorAddress}`);
+  const distributorImpl = await upgrades.erc1967.getImplementationAddress(distributorAddress);
+  console.log(`✅ Distributor deployed at: ${distributorAddress}`);
+  console.log(`   Logic implementation: ${distributorImpl}`);
 
-  // Step 5: Distribute initial allocations (except grant)
-  console.log("\n💸 Step 5: Distributing initial token allocations...");
+  // Step 5: Distribute allocations
+  console.log("\n💸 Distributing allocations...");
   const allocations = {
     [wallets.developerTreasury]: 12_500_000,
     [wallets.marketing]: 10_000_000,
@@ -91,77 +87,47 @@ async function main() {
     [distributorAddress]: 40_000_000,
   };
 
-  for (const [address, amount] of Object.entries(allocations)) {
+  for (const [addr, amount] of Object.entries(allocations)) {
     const tokens = ethers.parseUnits(amount.toString(), 18);
-    const tx = await silvanus.transfer(address, tokens);
+    const tx = await silvanus.transfer(addr, tokens);
     await tx.wait();
-    console.log(`   ✅ Sent ${amount.toLocaleString()} SVN to ${address}`);
+    console.log(`✅ Transferred ${amount.toLocaleString()} SVN to ${addr}`);
   }
 
-  // Step 6: Deploy SVNPresale contract and fund it
-  console.log("\n🛒 Step 6: Deploying SVNPresale contract...");
+  // Step 6: Deploy Presale
+  console.log("\n🛒 Deploying SVNPresale...");
   const SVNPresale = await ethers.getContractFactory("SVNPresale");
   const presale = await SVNPresale.deploy(silvanusAddress);
   await presale.waitForDeployment();
   const presaleAddress = await presale.getAddress();
-  console.log(`✅ SVNPresale deployed to: ${presaleAddress}`);
+  console.log(`✅ SVNPresale deployed at: ${presaleAddress}`);
 
   const presaleAmount = ethers.parseUnits("21000000", 18);
-  const presaleTx = await silvanus.transfer(presaleAddress, presaleAmount);
-  await presaleTx.wait();
-  console.log("   ✅ Transferred 21M SVN to Presale");
+  const txPresale = await silvanus.transfer(presaleAddress, presaleAmount);
+  await txPresale.wait();
+  console.log("✅ Transferred 21M SVN to Presale");
 
-  const presaleBalance = await silvanus.balanceOf(presaleAddress);
-  console.log(`   Presale contract balance: ${ethers.formatEther(presaleBalance)} SVN`);
+  // Step 7: Verify contracts
+  console.log("\n🔍 Verifying on Etherscan...");
+  const verify = async (address, args) => {
+    try {
+      await hre.run("verify:verify", { address, constructorArguments: args });
+      console.log(`✅ Verified: ${address}`);
+    } catch (e) {
+      console.warn(`⚠️  Verification failed for ${address}: ${e.message}`);
+    }
+  };
 
-  // Step 7: Verifications
-  console.log("\n🔍 Step 7: Verifying contracts on Etherscan...");
-  try {
-    await hre.run("verify:verify", {
-      address: logicAddress,
-      constructorArguments: [],
-    });
-    console.log(`✅ Silvanus logic contract verified: ${logicAddress}`);
-  } catch (err) {
-    console.warn(`⚠️  Logic contract verification failed: ${err.message}`);
-  }
+  await verify(silvanusImpl, []);
+  await verify(timelockAddress, [silvanusAddress, wallets.timelockBeneficiary, releaseTime]);
+  await verify(distributorImpl, []);
+  await verify(presaleAddress, [silvanusAddress]);
 
-  try {
-    await hre.run("verify:verify", {
-      address: timelockAddress,
-      constructorArguments: [silvanusAddress, wallets.timelockBeneficiary, releaseTime],
-    });
-    console.log(`✅ TokenTimelock verified: ${timelockAddress}`);
-  } catch (err) {
-    console.warn(`⚠️  Timelock verification failed: ${err.message}`);
-  }
-
-  try {
-    const distImpl = await upgrades.erc1967.getImplementationAddress(distributorAddress);
-    await hre.run("verify:verify", {
-      address: distImpl,
-      constructorArguments: [],
-    });
-    console.log(`✅ GreenRewardDistributor logic verified: ${distImpl}`);
-  } catch (err) {
-    console.warn(`⚠️  Distributor verification failed: ${err.message}`);
-  }
-
-  try {
-    await hre.run("verify:verify", {
-      address: presaleAddress,
-      constructorArguments: [silvanusAddress],
-    });
-    console.log(`✅ SVNPresale contract verified: ${presaleAddress}`);
-  } catch (err) {
-    console.warn(`⚠️  SVNPresale verification failed: ${err.message}`);
-  }
-
-  console.log("\n✅ DEPLOYMENT COMPLETE!");
+  console.log("\n🎉 Deployment complete!");
 }
 
-main().catch((error) => {
+main().catch((err) => {
   console.error("❌ DEPLOYMENT FAILED!");
-  console.error(error);
+  console.error(err);
   process.exit(1);
 });
