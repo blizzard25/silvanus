@@ -5,24 +5,34 @@ require("dotenv").config();
 const { SEPOLIA_RPC_URL, MAINNET_RPC_URL, PRIVATE_KEY, ETHERSCAN_API_KEY } = process.env;
 
 module.exports = {
-  solidity: "0.8.22",
+  solidity: {
+    version: "0.8.22",
+    settings: {
+      evmVersion: "london",
+      optimizer: {
+        enabled: true,
+        //runs: 800
+      }
+    }
+  },
   networks: {
     sepolia: {
       url: SEPOLIA_RPC_URL,
       accounts: [PRIVATE_KEY],
       gas: 8000000,
-      gasPrice: 2000000000
+      gasPrice: 20000000000 // 20 gwei
     },
     mainnet: {
       url: MAINNET_RPC_URL,
       accounts: [PRIVATE_KEY],
       gas: 8000000,
-      gasPrice: 3000000000,
+      gasPrice: 20000000000 // 20 gwei
     },
   },
   etherscan: {
     apiKey: {
-      sepolia: ETHERSCAN_API_KEY
+      sepolia: ETHERSCAN_API_KEY,
+      mainnet: ETHERSCAN_API_KEY
     }
   }
 };
