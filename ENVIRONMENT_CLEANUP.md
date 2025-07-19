@@ -7,6 +7,57 @@ The `deploy_all.js` script introduced persistent state corruption that caused al
 2. Using fresh shell environments to avoid corrupted state
 3. Replacing the problematic all-in-one deployment approach with separate scripts
 
+## CRITICAL: Mainnet Deployment State Corruption
+
+Based on GitHub issue #346, OpenZeppelin stores deployment state in the `.openzeppelin/` directory. When `chainId: 1` is used with hardhat forking, subsequent deployments fail because the plugin tries to reuse deployment information that doesn't exist on the reset network, causing "invalid value for value.to" errors.
+
+**Symptoms:**
+- "invalid value for value.to (invalid address)" error during proxy deployment
+- Failed contract creation transactions that consume gas but don't deploy contracts
+- Deployment works on testnets but fails on mainnet
+
+**Solution:**
+1. Clear OpenZeppelin state before mainnet deployment:
+   ```bash
+   rm -rf .openzeppelin/
+   npx hardhat clean
+   ```
+
+2. Use safe local debugging with mainnet forking:
+   ```bash
+   # Test deployment locally with mainnet forking
+   npx hardhat run debug_deploy_minimal.js --config hardhat.config.debug.js
+   ```
+
+3. Avoid setting `chainId: 1` in hardhat forking configuration
+
+## Mainnet Deployment Safety Checklist
+
+**BEFORE attempting any mainnet deployment:**
+
+1. **Clear deployment state:**
+   ```bash
+   rm -rf .openzeppelin/
+   npx hardhat clean
+   npx hardhat compile
+   ```
+
+2. **Test locally with mainnet forking:**
+   ```bash
+   npx hardhat run debug_deploy_minimal.js --config hardhat.config.debug.js
+   ```
+
+3. **Verify the test deployment succeeds multiple times**
+
+4. **Double-check all parameters:**
+   - Initial supply: `ethers.parseEther("100000000")` (100M tokens)
+   - Proxy kind: `"uups"`
+   - Gas settings: EIP-1559 with sufficient maxFeePerGas/maxPriorityFeePerGas
+
+5. **Ensure sufficient ETH balance for deployment**
+
+6. **Only proceed with mainnet deployment after local testing confirms success**
+
 ## Local Environment Cleanup Steps
 
 ### 1. Clear Hardhat Cache and OpenZeppelin State
