@@ -3,6 +3,99 @@ const hre = require("hardhat");
 const fs = require("fs");
 const { ethers, upgrades } = hre;
 
+async function deployProxyWithErrorHandling(contractFactory, args, options, contractName) {
+  try {
+    console.log(`🚀 Deploying ${contractName} proxy...`);
+    const contract = await upgrades.deployProxy(contractFactory, args, options);
+    
+    console.log(`⏳ Waiting for ${contractName} deployment...`);
+    await contract.waitForDeployment();
+    
+    const address = await contract.getAddress();
+    console.log(`✅ ${contractName} deployed at: ${address}`);
+    
+    return contract;
+  } catch (error) {
+    if (error.message && 
+        error.message.includes('invalid value for value.to') && 
+        error.message.includes('invalid address') &&
+        error.code === 'INVALID_ARGUMENT') {
+      
+      console.warn(`⚠️  Detected ethers.js transaction formatting error during ${contractName} deployment`);
+      console.warn("   This may indicate a successful deployment with formatting issues");
+      console.warn("   Attempting to recover and verify deployment...");
+      
+      try {
+        const address = await contract.getAddress();
+        console.log(`🔍 Recovery attempt: Found contract at ${address}`);
+        return contract;
+      } catch (recoveryError) {
+        console.error(`❌ Recovery failed for ${contractName}: ${recoveryError.message}`);
+        throw new Error(`${contractName} deployment failed - unable to recover from formatting error`);
+      }
+    }
+    
+    console.error(`❌ ${contractName} deployment failed:`, error.message);
+    throw error;
+  }
+}
+
+async function verifyContractInitialization(contract, contractName, expectedChecks = {}) {
+  try {
+    const address = await contract.getAddress();
+    console.log(`🔍 Verifying ${contractName} initialization at ${address}...`);
+    
+    if (expectedChecks.totalSupply) {
+      const totalSupply = await contract.totalSupply();
+      const expected = expectedChecks.totalSupply;
+      
+      if (totalSupply.toString() !== expected.toString()) {
+        throw new Error(`${contractName} initialization failed: expected ${ethers.formatEther(expected)} tokens, got ${ethers.formatEther(totalSupply)}`);
+      }
+      
+      console.log(`✅ ${contractName} total supply verified: ${ethers.formatEther(totalSupply)} tokens`);
+    }
+    
+    if (expectedChecks.deployerBalance) {
+      const deployerBalance = await contract.balanceOf(expectedChecks.deployerAddress);
+      const expected = expectedChecks.deployerBalance;
+      
+      if (deployerBalance.toString() !== expected.toString()) {
+        throw new Error(`${contractName} initialization failed: expected deployer balance ${ethers.formatEther(expected)} tokens, got ${ethers.formatEther(deployerBalance)}`);
+      }
+      
+      console.log(`✅ ${contractName} deployer balance verified: ${ethers.formatEther(deployerBalance)} tokens`);
+    }
+    
+    if (expectedChecks.deployerBalance) {
+      const deployerBalance = await contract.balanceOf(expectedChecks.deployerAddress);
+      const expected = expectedChecks.deployerBalance;
+      
+      if (deployerBalance.toString() !== expected.toString()) {
+        throw new Error(`${contractName} initialization failed: expected deployer balance ${ethers.formatEther(expected)} tokens, got ${ethers.formatEther(deployerBalance)}`);
+      }
+      
+      console.log(`✅ ${contractName} deployer balance verified: ${ethers.formatEther(deployerBalance)} tokens`);
+    }
+    
+    if (expectedChecks.owner) {
+      const owner = await contract.owner();
+      const expected = expectedChecks.owner;
+      
+      if (owner.toLowerCase() !== expected.toLowerCase()) {
+        throw new Error(`${contractName} initialization failed: expected owner ${expected}, got ${owner}`);
+      }
+      
+      console.log(`✅ ${contractName} owner verified: ${owner}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`❌ ${contractName} verification failed:`, error.message);
+    throw error;
+  }
+}
+
 async function main() {
   console.log("🚀 Starting comprehensive Silvanus deployment...\n");
 
@@ -41,14 +134,26 @@ async function main() {
   try {
     console.log("\n🪙 Deploying Silvanus Token...");
     const Silvanus = await ethers.getContractFactory("Silvanus");
-    silvanus = await upgrades.deployProxy(Silvanus, [ethers.parseEther("100000000")], {
-      initializer: "initialize",
-      kind: "uups",
+    
+    const expectedSupply = ethers.parseEther("100000000");
+    silvanus = await deployProxyWithErrorHandling(
+      Silvanus, 
+      [expectedSupply], 
+      {
+        initializer: "initialize",
+        kind: "uups",
+      },
+      "Silvanus"
+    );
+    
+    await verifyContractInitialization(silvanus, "Silvanus", {
+      totalSupply: expectedSupply,
+      deployerBalance: expectedSupply,
+      deployerAddress: deployer.address
     });
-    await silvanus.waitForDeployment();
+    
     silvanusAddress = await silvanus.getAddress();
     silvanusImpl = await upgrades.erc1967.getImplementationAddress(silvanusAddress);
-    console.log(`✅ Silvanus deployed at: ${silvanusAddress}`);
     console.log(`   Logic implementation: ${silvanusImpl}`);
   } catch (error) {
     console.error("❌ Failed to deploy Silvanus Token:");
@@ -89,18 +194,21 @@ async function main() {
     console.log("\n🌿 Deploying GreenRewardDistributor...");
     const GreenRewardDistributor = await ethers.getContractFactory("GreenRewardDistributor");
     const baseReward = ethers.parseEther("1");
-    distributor = await upgrades.deployProxy(
+    
+    distributor = await deployProxyWithErrorHandling(
       GreenRewardDistributor,
       [silvanusAddress, baseReward],
       {
         initializer: "initialize",
         kind: "uups",
-      }
+      },
+      "GreenRewardDistributor"
     );
-    await distributor.waitForDeployment();
+    
+    await verifyContractInitialization(distributor, "GreenRewardDistributor");
+    
     distributorAddress = await distributor.getAddress();
     distributorImpl = await upgrades.erc1967.getImplementationAddress(distributorAddress);
-    console.log(`✅ Distributor deployed at: ${distributorAddress}`);
     console.log(`   Logic implementation: ${distributorImpl}`);
   } catch (error) {
     console.error("❌ Failed to deploy GreenRewardDistributor:");
