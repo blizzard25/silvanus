@@ -1,9 +1,18 @@
 require("dotenv").config();
 const { ethers, upgrades, network } = require("hardhat");
 
+// Utility: Timeout wrapper
+function withTimeout(promise, ms, label) {
+  let timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`⏱ Timeout in step: ${label}`)), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
 async function main() {
   console.log("🔧 Starting Silvanus deployment script...");
   console.log("🌐 Network name:", network.name);
+  console.log(`🌐 ENV Check — Alchemy Mainnet URL starts with: ${process.env.MAINNET_RPC_URL?.slice(0, 40)}...`);
 
   // Get deployer signer
   const [deployer] = await ethers.getSigners();
@@ -25,6 +34,8 @@ async function main() {
   try {
     Silvanus = await ethers.getContractFactory("Silvanus");
     console.log("📦 Loaded Silvanus contract factory.");
+    console.log("🧾 Contract bytecode size:", Silvanus.bytecode?.length);
+    console.log("🧾 ABI function count:", Silvanus.interface?.fragments?.length);
   } catch (err) {
     console.error("❌ Failed to load contract factory:", err.message);
     throw err;
@@ -62,13 +73,21 @@ async function main() {
   // Deploy proxy contract
   let silvanus;
   try {
-    console.log("🚀 Deploying Silvanus contract via proxy...");
-    silvanus = await upgrades.deployProxy(Silvanus, [initialSupply], {
-      initializer: "initialize",
-      kind: "uups",
-    });
+    console.log("🚀 Step 1: Calling upgrades.deployProxy...");
+    silvanus = await withTimeout(
+      upgrades.deployProxy(Silvanus, [initialSupply], {
+        initializer: "initialize",
+        kind: "uups",
+      }),
+      20000,
+      "deployProxy"
+    );
+    console.log("✅ Step 2: deployProxy resolved");
 
-    await silvanus.waitForDeployment();
+    console.log("🔄 Step 3: Awaiting waitForDeployment...");
+    await withTimeout(silvanus.waitForDeployment(), 15000, "waitForDeployment");
+    console.log("✅ Step 4: Deployment confirmed");
+
     const proxyAddress = await silvanus.getAddress();
     if (!ethers.isAddress(proxyAddress)) {
       throw new Error("Received invalid proxy address");
@@ -89,6 +108,7 @@ async function main() {
   }
 }
 
+// Global catch
 main().catch((err) => {
   console.error("❌ Script terminated due to error:", err.message || err);
   process.exit(1);
