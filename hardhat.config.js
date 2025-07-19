@@ -26,7 +26,8 @@ module.exports = {
       url: MAINNET_RPC_URL,
       accounts: [PRIVATE_KEY],
       gas: 8000000,
-      gasPrice: 20000000000 // 20 gwei
+      maxFeePerGas: 25000000000, // 25 gwei
+      maxPriorityFeePerGas: 2000000000, // 2 gwei
     },
   },
   etherscan: {
